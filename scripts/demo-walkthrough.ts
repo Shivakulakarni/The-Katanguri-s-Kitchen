@@ -52,37 +52,32 @@ async function run() {
   });
   const webPage = await webContext.newPage();
 
-  // 1. Homepage
-  console.log('1️⃣  Homepage');
-  await webPage.goto(WEB_URL, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Homepage hero section loads');
-  await screenshot(webContext, '01-web-homepage-hero');
-  
-  // Scroll to show stats
-  await webPage.evaluate(() => window.scrollBy(0, 400));
-  await pause(2000, 'Stats bar scrolls into view');
-  await screenshot(webContext, '02-web-homepage-stats');
-  
-  // Scroll to categories
-  await webPage.evaluate(() => window.scrollBy(0, 400));
-  await pause(2000, 'Category cards');
-  await screenshot(webContext, '03-web-homepage-categories');
-  
-  // Scroll to popular dishes
-  await webPage.evaluate(() => window.scrollBy(0, 500));
-  await pause(2000, 'Popular dishes grid');
-  await screenshot(webContext, '04-web-homepage-dishes');
-  
-  // Scroll to How it works
-  await webPage.evaluate(() => window.scrollBy(0, 500));
-  await pause(2000, 'How it works section');
-  await screenshot(webContext, '05-web-homepage-how-it-works');
-  
-  // Scroll to features + CTA
-  await webPage.evaluate(() => window.scrollBy(0, 500));
-  await pause(2000, 'Features and CTA');
-  await screenshot(webContext, '06-web-homepage-cta');
+  const pages = [
+    { name: 'Homepage', url: WEB_URL, screenshots: [
+      { label: 'hero', wait: 3000 },
+      { label: 'stats', scroll: 400, wait: 2000 },
+      { label: 'categories', scroll: 400, wait: 2000 },
+      { label: 'dishes', scroll: 500, wait: 2000 },
+      { label: 'how-it-works', scroll: 500, wait: 2000 },
+      { label: 'cta', scroll: 500, wait: 2000 },
+    ]},
+  ];
 
+  // Navigate each page with error recovery
+  for (const pg of pages) {
+    try {
+      console.log(`\n1️⃣  ${pg.name}`);
+      await webPage.goto(pg.url, { waitUntil: 'load', timeout: 60000 });
+      for (let i = 0; i < pg.screenshots.length; i++) {
+        const s = pg.screenshots[i];
+        if (s.scroll) await webPage.evaluate((px: number) => window.scrollBy(0, px), s.scroll);
+        await pause(s.wait, `${pg.name} ${s.label}`);
+        const num = String(i + 1).padStart(2, '0');
+        await screenshot(webContext, `${num}-web-homepage-${s.label}`);
+      }
+    } catch (err) { console.log(`  ⚠️  Skipped ${pg.name}: ${(err as Error).message?.slice(0, 80)}`); }
+  }
+  
   // 2. Menu Page
   console.log('2️⃣  Menu Page');
   await webPage.goto(`${WEB_URL}/menu`, { waitUntil: 'load', timeout: 60000 });
@@ -200,143 +195,64 @@ async function run() {
   });
   const adminPage = await adminContext.newPage();
 
-  // 8. Admin Login
-  console.log('8️⃣  Admin Login');
-  await adminPage.goto(`${ADMIN_URL}/login`, { waitUntil: 'load', timeout: 60000 });
-  await pause(2000, 'Admin login page');
-  await screenshot(adminContext, '20-admin-login');
-  
-  // Fill credentials
-  await adminPage.fill('input[placeholder*="admin"]', ADMIN_EMAIL);
-  await adminPage.fill('input[placeholder*="***"]', ADMIN_PASSWORD);
-  await pause(1000, 'Credentials filled');
-  await screenshot(adminContext, '21-admin-login-filled');
-  
-  // Submit
-  await adminPage.click('button:has-text("Sign In")');
-  await pause(4000, 'Login and dashboard loads');
-  await screenshot(adminContext, '22-admin-dashboard');
+  // Admin pages with error recovery
+  const adminPages = [
+    { name: 'Admin Login', url: `${ADMIN_URL}/login`, screenshots: ['20-admin-login'] },
+    { name: 'Dashboard', url: `${ADMIN_URL}/`, screenshots: ['22-admin-dashboard', '23-admin-dashboard-full'], wait: 4000 },
+    { name: 'KDS', url: `${ADMIN_URL}/kds`, screenshots: ['24-admin-kds'] },
+    { name: 'Orders', url: `${ADMIN_URL}/orders`, screenshots: ['25-admin-orders'] },
+    { name: 'Menu', url: `${ADMIN_URL}/menu`, screenshots: ['26-admin-menu'] },
+    { name: 'Inventory', url: `${ADMIN_URL}/inventory`, screenshots: ['27-admin-inventory'] },
+    { name: 'Analytics', url: `${ADMIN_URL}/analytics`, screenshots: ['28-admin-analytics'] },
+    { name: 'AI Insights', url: `${ADMIN_URL}/ai-insights`, screenshots: ['29-admin-ai-sentiment'], action: 'forecast' },
+    { name: 'Automation', url: `${ADMIN_URL}/automation`, screenshots: ['31-admin-automation'] },
+    { name: 'Delivery', url: `${ADMIN_URL}/delivery`, screenshots: ['32-admin-delivery'] },
+    { name: 'Customers', url: `${ADMIN_URL}/customers`, screenshots: ['33-admin-customers'] },
+    { name: 'Riders', url: `${ADMIN_URL}/riders`, screenshots: ['34-admin-riders-map'] },
+    { name: 'Settings', url: `${ADMIN_URL}/settings`, screenshots: ['35-admin-settings'] },
+    { name: 'Webhooks', url: `${ADMIN_URL}/webhooks`, screenshots: ['36-admin-webhooks'] },
+    { name: 'WH Analytics', url: `${ADMIN_URL}/webhooks/analytics`, screenshots: ['37-admin-webhooks-analytics'] },
+    { name: 'WH Health', url: `${ADMIN_URL}/webhooks/health`, screenshots: ['38-admin-webhooks-health'] },
+    { name: 'WH Alerts', url: `${ADMIN_URL}/webhooks/alerts`, screenshots: ['39-admin-webhooks-alerts'] },
+    { name: 'WH Replay', url: `${ADMIN_URL}/webhooks/replay`, screenshots: ['40-admin-webhooks-replay'] },
+    { name: 'Photos', url: `${ADMIN_URL}/photos`, screenshots: ['41-admin-photos'] },
+    { name: 'Modifiers', url: `${ADMIN_URL}/menu-modifiers`, screenshots: ['42-admin-modifiers'] },
+  ];
 
-  // 9. Dashboard
-  console.log('9️⃣  Dashboard');
-  await adminPage.waitForTimeout(4000);
-  await screenshot(adminContext, '23-admin-dashboard-full');
+  // Login first
+  try {
+    console.log('8️⃣  Admin Login');
+    await adminPage.goto(`${ADMIN_URL}/login`, { waitUntil: 'load', timeout: 60000 });
+    await pause(2000, 'Admin login page');
+    await screenshot(adminContext, '20-admin-login');
+    await adminPage.fill('input[placeholder*="admin"]', ADMIN_EMAIL);
+    await adminPage.fill('input[placeholder*="***"]', ADMIN_PASSWORD);
+    await pause(1000, 'Credentials filled');
+    await screenshot(adminContext, '21-admin-login-filled');
+    await adminPage.click('button:has-text("Sign In")');
+    await pause(4000, 'Login and dashboard loads');
+    await screenshot(adminContext, '22-admin-dashboard');
+  } catch (err) { console.log(`  ⚠️  Login failed: ${(err as Error).message?.slice(0, 80)}`); }
 
-  // 10. KDS (Kitchen Display System)
-  console.log('🔟  Kitchen Display System');
-  await adminPage.goto(`${ADMIN_URL}/kds`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'KDS Kanban board loads');
-  await screenshot(adminContext, '24-admin-kds');
-
-  // 11. Orders Management
-  console.log('1️⃣1️⃣  Orders Management');
-  await adminPage.goto(`${ADMIN_URL}/orders`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Orders table with status filters');
-  await screenshot(adminContext, '25-admin-orders');
-
-  // 12. Menu Management
-  console.log('1️⃣2️⃣  Menu Management');
-  await adminPage.goto(`${ADMIN_URL}/menu`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Menu categories and dishes');
-  await screenshot(adminContext, '26-admin-menu');
-
-  // 13. Inventory
-  console.log('1️⃣3️⃣  Inventory');
-  await adminPage.goto(`${ADMIN_URL}/inventory`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Inventory management');
-  await screenshot(adminContext, '27-admin-inventory');
-
-  // 14. Analytics
-  console.log('1️⃣4️⃣  Analytics');
-  await adminPage.goto(`${ADMIN_URL}/analytics`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Analytics dashboard');
-  await screenshot(adminContext, '28-admin-analytics');
-
-  // 15. AI Insights
-  console.log('1️⃣5️⃣  AI Insights');
-  await adminPage.goto(`${ADMIN_URL}/ai-insights`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'AI sentiment analysis');
-  await screenshot(adminContext, '29-admin-ai-sentiment');
-  
-  // Switch to forecast tab
-  const forecastBtn = adminPage.locator('button:has-text("Demand Forecast")');
-  if (await forecastBtn.isVisible()) {
-    await forecastBtn.click();
-    await pause(3000, 'AI demand forecast');
-    await screenshot(adminContext, '30-admin-ai-forecast');
+  // Navigate each admin page with error recovery
+  for (const pg of adminPages.slice(1)) {
+    try {
+      console.log(`  ${pg.name}`);
+      await adminPage.goto(pg.url, { waitUntil: 'load', timeout: 60000 });
+      await pause(pg.wait || 3000, pg.name);
+      if (pg.action === 'forecast') {
+        const forecastBtn = adminPage.locator('button:has-text("Demand Forecast")');
+        if (await forecastBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await forecastBtn.click();
+          await pause(3000, 'AI demand forecast');
+          await screenshot(adminContext, '30-admin-ai-forecast');
+        }
+      }
+      for (const shot of pg.screenshots) {
+        await screenshot(adminContext, shot);
+      }
+    } catch (err) { console.log(`  ⚠️  Skipped ${pg.name}: ${(err as Error).message?.slice(0, 80)}`); }
   }
-
-  // 16. Automation
-  console.log('1️⃣6️⃣  Automation');
-  await adminPage.goto(`${ADMIN_URL}/automation`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Automation rules and workflows');
-  await screenshot(adminContext, '31-admin-automation');
-
-  // 17. Delivery Zones
-  console.log('1️⃣7️⃣  Delivery Zones');
-  await adminPage.goto(`${ADMIN_URL}/delivery`, { waitUntil: 'load', timeout: 60000 });
-  await pause(4000, 'Delivery zones map');
-  await screenshot(adminContext, '32-admin-delivery');
-
-  // 18. Customers
-  console.log('1️⃣8️⃣  Customers');
-  await adminPage.goto(`${ADMIN_URL}/customers`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Customer list');
-  await screenshot(adminContext, '33-admin-customers');
-
-  // 19. Riders Map
-  console.log('1️⃣9️⃣  Live Rider Map');
-  await adminPage.goto(`${ADMIN_URL}/riders`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Live rider tracking map');
-  await screenshot(adminContext, '34-admin-riders-map');
-
-  // 20. Settings
-  console.log('2️⃣0️⃣  Settings');
-  await adminPage.goto(`${ADMIN_URL}/settings`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Settings configuration');
-  await screenshot(adminContext, '35-admin-settings');
-
-  // 21. Webhooks Hub
-  console.log('2️⃣1️⃣  Webhooks Hub');
-  await adminPage.goto(`${ADMIN_URL}/webhooks`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Webhooks overview');
-  await screenshot(adminContext, '36-admin-webhooks');
-
-  // 22. Webhook Analytics
-  console.log('2️⃣2️⃣  Webhook Analytics');
-  await adminPage.goto(`${ADMIN_URL}/webhooks/analytics`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Webhook analytics');
-  await screenshot(adminContext, '37-admin-webhooks-analytics');
-
-  // 23. Webhook Health
-  console.log('2️⃣3️⃣  Webhook Health');
-  await adminPage.goto(`${ADMIN_URL}/webhooks/health`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Webhook health monitor');
-  await screenshot(adminContext, '38-admin-webhooks-health');
-
-  // 24. Webhook Alerts
-  console.log('2️⃣4️⃣  Webhook Alerts');
-  await adminPage.goto(`${ADMIN_URL}/webhooks/alerts`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Webhook alerts');
-  await screenshot(adminContext, '39-admin-webhooks-alerts');
-
-  // 25. Webhook Replay
-  console.log('2️⃣5️⃣  Webhook Replay');
-  await adminPage.goto(`${ADMIN_URL}/webhooks/replay`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Webhook replay tool');
-  await screenshot(adminContext, '40-admin-webhooks-replay');
-
-  // 26. Photos
-  console.log('2️⃣6️⃣  Photos');
-  await adminPage.goto(`${ADMIN_URL}/photos`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Photo management');
-  await screenshot(adminContext, '41-admin-photos');
-
-  // 27. Menu Modifiers
-  console.log('2️⃣7️⃣  Menu Modifiers');
-  await adminPage.goto(`${ADMIN_URL}/menu-modifiers`, { waitUntil: 'load', timeout: 60000 });
-  await pause(3000, 'Menu modifiers');
-  await screenshot(adminContext, '42-admin-modifiers');
 
   // Save admin video
   const adminVideo = adminPage.video();
