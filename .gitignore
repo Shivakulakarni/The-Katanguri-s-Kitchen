@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+.env
+.env.local
+.env.*.local
+*.log
+# drizzle SQL migrations should be committed; only ignore local dev artifacts
+apps/api/drizzle/meta/
+.turbo/
+scratch/
+test-results/
+coverage/
+*.tsbuildinfo
+demo-output/
