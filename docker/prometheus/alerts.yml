@@ -1,0 +1,84 @@
+groups:
+  - name: kitchen_alerts
+    interval: 30s
+    rules:
+      - alert: HighErrorRate
+        expr: rate(kitchen_requests_5xx[5m]) / rate(kitchen_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error rate above 5% (current: {{ $value | humanizePercentage }})"
+          description: "API error rate exceeded 5% over the last 5 minutes. Investigate immediately."
+
+      - alert: HighLatency
+        expr: kitchen_request_duration_ms_sum / kitchen_request_duration_ms_count > 2000
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Average request latency above 2 seconds"
+          description: "Average latency is {{ $value }}ms. Check DB pool and Redis."
+
+      - alert: P99LatencySpike
+        expr: histogram_quantile(0.99, rate(kitchen_request_duration_ms_bucket[5m])) > 5000
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "P99 latency above 5 seconds"
+          description: "P99 request latency is {{ $value }}ms. Performance degradation."
+
+      - alert: HighTrafficRate
+        expr: rate(kitchen_requests_total[5m]) > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Request rate above 100/sec — may need scaling"
+          description: "Current rate: {{ $value | humanize }} req/s. Consider horizontal scaling."
+
+      - alert: OrdersThroughputDrop
+        expr: rate(kitchen_orders_created_total[5m]) < 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Order creation rate dropped below 1/min"
+          description: "No orders created in the last 5 minutes. Possible outage or bug."
+
+      - alert: PaymentFailureRate
+        expr: rate(kitchen_payments_processed_total{status="failed"}[5m]) / rate(kitchen_payments_processed_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Payment failure rate above 10%"
+          description: "Payment failures exceed 10%. Check Stripe integration."
+
+      - alert: SSEClientSaturation
+        expr: kitchen_sse_clients > 400
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SSE client count approaching limit ({{ $value }}/500)"
+          description: "SSE connections nearing the MAX_SSE_CLIENTS limit of 500."
+
+      - alert: ServiceDown
+        expr: up{job="kitchen-api"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "API service is down"
+          description: "Prometheus cannot scrape the API metrics endpoint."
+
+      - alert: HighDBConnections
+        expr: db_pool_waiting_count > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database connection pool exhaustion detected"
+          description: "DB pool has {{ $value }} waiting connections. Scale up or optimize queries."

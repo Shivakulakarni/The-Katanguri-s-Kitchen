@@ -1,0 +1,47 @@
+{
+  "title": "Kitchen API Overview",
+  "version": 1,
+  "panels": [
+    {
+      "title": "Request Rate",
+      "type": "graph",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(kitchen_requests_total[1m])", "legendFormat": "All Requests" },
+        { "expr": "rate(kitchen_requests_5xx[1m])", "legendFormat": "5xx Errors" }
+      ]
+    },
+    {
+      "title": "P95 Response Time",
+      "type": "graph",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum(rate(kitchen_request_duration_ms_bucket[1m])) by (le))", "legendFormat": "P95" }
+      ]
+    },
+    {
+      "title": "Orders Created",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(kitchen_orders_created_total[1m])", "legendFormat": "Orders/min" }
+      ]
+    },
+    {
+      "title": "SSE Clients",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "kitchen_sse_clients", "legendFormat": "Connected" }
+      ]
+    },
+    {
+      "title": "Uptime",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "kitchen_uptime_seconds", "legendFormat": "Uptime (s)" }
+      ]
+    }
+  ]
+}

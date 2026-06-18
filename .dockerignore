@@ -1,0 +1,52 @@
+# Dependencies (each Dockerfile runs its own npm ci)
+node_modules
+
+# Build artifacts
+dist
+.next
+.turbo
+coverage
+
+# Dev/test files
+tests
+k6
+extension
+docs
+tmp
+.tmp
+
+# Chrome user data (huge, not needed)
+chrome-user-data
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker (avoid recursive context)
+Dockerfile.*
+docker-compose.yml
+docker-compose*.yml
+
+# Environment files (injected via env_file in docker-compose)
+.env
+.env.*
+!.env.example
+
+# Playwright
+playwright-report
+test-results
+
+# Misc
+*.md
+LICENSE
+CHANGELOG.md

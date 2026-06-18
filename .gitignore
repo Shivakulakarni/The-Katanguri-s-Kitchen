@@ -3,6 +3,8 @@ dist/
 .next/
 .env
 .env.local
+.env.production
+.tmp/
 .env.*.local
 *.log
 # drizzle SQL migrations should be committed; only ignore local dev artifacts
@@ -13,3 +15,22 @@ test-results/
 coverage/
 *.tsbuildinfo
 demo-output/
+
+# App-level env files (secrets must never be committed)
+apps/*/.env
+apps/*/.env.local
+apps/*/.env.*.local
+
+# k6 binary (download via script, don't commit)
+k6/k6.exe
+
+# Chrome extension (dev-only tool, not part of product)
+extension/
+
+# Test screenshots, videos, and generated reports (not source code)
+tests/screenshots/
+tests/visual-walkthrough/
+tests/qa-report/
+
+# SSL private key (regenerate via openssl.cnf for new environments)
+docker/nginx/certs/privkey.pem

@@ -1,0 +1,83 @@
+# Distributed Tracing Stack
+# Usage: docker compose -f docker/docker-compose.tracing.yml up -d
+#
+# Services:
+#   - Jaeger: trace visualization (http://localhost:16686)
+#   - Prometheus: metrics collection (http://localhost:9090)
+#   - Grafana: dashboards (http://localhost:3000, admin/admin)
+#
+# To send traces from the API, set these env vars:
+#   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+#   NODE_ENV=development
+
+version: '3.8'
+
+services:
+  # ── Jaeger All-in-One ──
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    container_name: kitchen-jaeger
+    ports:
+      - "16686:16686"   # UI
+      - "4317:4317"     # OTLP gRPC
+      - "4318:4318"     # OTLP HTTP
+      - "6831:6831/udp" # Jaeger compact thrift
+      - "14268:14268"   # Jaeger HTTP collector
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_DIRECTORY_KEY=/badger/key
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_EPHEMERAL=false
+    volumes:
+      - jaeger-data:/badger
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:16686/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Prometheus ──
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: kitchen-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Grafana ──
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: kitchen-grafana
+    ports:
+      - "3100:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3100
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      jaeger:
+        condition: service_healthy
+
+volumes:
+  jaeger-data:
+  prometheus-data:
+  grafana-data:

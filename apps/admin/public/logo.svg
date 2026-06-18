@@ -1,0 +1,84 @@
+<svg
+  viewBox="0 0 500 500"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <defs>
+    <path id="bottom-text-path" d="M 80 260 A 170 170 0 0 0 420 260" fill="transparent" />
+    <path id="banner-text-path" d="M 40 240 Q 250 190 460 240" fill="transparent" />
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" floodOpacity="0.25" />
+    </filter>
+  </defs>
+
+  <!-- Outer green border -->
+  <circle cx="250" cy="250" r="240" fill="#728A6D" />
+  
+  <!-- Inner thin beige border -->
+  <circle cx="250" cy="250" r="215" fill="none" stroke="#E3DAC9" stroke-width="4" />
+  
+  <!-- Inner brown section -->
+  <circle cx="250" cy="250" r="205" fill="#8C5C45" />
+
+  <!-- Inner beige section -->
+  <circle cx="250" cy="250" r="195" fill="#F1EAD3" />
+
+  <!-- Top curved lines & dashes -->
+  <path d="M 140 130 A 150 150 0 0 1 360 130" fill="none" stroke="#8C5C45" stroke-width="4" stroke-dasharray="15 15" />
+  <path d="M 160 160 A 120 120 0 0 1 340 160" fill="none" stroke="#8C5C45" stroke-width="2" />
+  
+  <line x1="180" y1="180" x2="210" y2="180" stroke="#1A1A1A" stroke-width="4" />
+  <line x1="290" y1="180" x2="320" y2="180" stroke="#1A1A1A" stroke-width="4" />
+
+  <!-- Text: THE -->
+  <text x="250" y="192" text-anchor="middle" fill="#1A1A1A" font-family="'Georgia', serif" font-size="38" font-weight="bold">
+    THE
+  </text>
+
+  <!-- Center Icons -->
+  <g transform="translate(250, 310)">
+    <!-- Leaves -->
+    <path d="M -80 -30 C -60 -50 -30 -20 -40 0 C -60 -10 -80 -10 -80 -30 Z" fill="#728A6D" />
+    <path d="M 80 -30 C 60 -50 30 -20 40 0 C 60 -10 80 -10 80 -30 Z" fill="#728A6D" />
+    
+    <!-- Small decorative sprigs -->
+    <path d="M -110 -20 L -90 0 M -100 -10 L -115 5 M -100 -10 L -90 -25" stroke="#F1EAD3" stroke-width="3" fill="none" stroke-linecap="round" />
+    <path d="M 110 -20 L 90 0 M 100 -10 L 115 5 M 100 -10 L 90 -25" stroke="#F1EAD3" stroke-width="3" fill="none" stroke-linecap="round" />
+
+    <!-- Left Spoon -->
+    <path d="M -40 -60 L -10 0" stroke="#8C5C45" stroke-width="8" stroke-linecap="round" />
+    <ellipse cx="-45" cy="-75" rx="12" ry="24" fill="#8C5C45" transform="rotate(-30 -45 -75)" />
+
+    <!-- Right Spatula -->
+    <path d="M 40 -60 L 10 0" stroke="#8C5C45" stroke-width="8" stroke-linecap="round" />
+    <rect x="30" y="-95" width="24" height="34" rx="8" fill="#F1EAD3" stroke="#8C5C45" stroke-width="6" transform="rotate(30 42 -78)" />
+    <!-- Spatula slots -->
+    <line x1="38" y1="-85" x2="38" y2="-72" stroke="#8C5C45" stroke-width="4" transform="rotate(30 42 -78)" />
+    <line x1="46" y1="-85" x2="46" y2="-72" stroke="#8C5C45" stroke-width="4" transform="rotate(30 42 -78)" />
+
+    <!-- Center Ladle/Spoon -->
+    <path d="M 0 -70 L 0 0" stroke="#8C5C45" stroke-width="8" stroke-linecap="round" />
+    <circle cx="0" cy="-85" r="18" fill="#728A6D" />
+
+    <!-- Chef Hat (front center) -->
+    <path d="M -40 -10 C -60 -10 -60 -45 -25 -45 C -25 -65 25 -65 25 -45 C 60 -45 60 -10 40 -10 Z" fill="#8C5C45" stroke="#F1EAD3" stroke-width="2" />
+    <rect x="-35" y="-10" width="70" height="20" rx="6" fill="#8C5C45" stroke="#F1EAD3" stroke-width="2" />
+    <path d="M -20 -35 Q 0 -55 20 -35" fill="none" stroke="#F1EAD3" stroke-width="3" opacity="0.4" />
+  </g>
+
+  <!-- Text: KITCHEN (bottom curved) -->
+  <text>
+    <textPath href="#bottom-text-path" startOffset="50%" text-anchor="middle" fill="#F1EAD3" font-family="'Arial', sans-serif" font-size="60" font-weight="900" letter-spacing="6">
+      KITCHEN
+    </textPath>
+  </text>
+
+  <!-- Center Banner -->
+  <path d="M 10 200 Q 250 150 490 200 L 490 270 Q 250 220 10 270 Z" fill="#F1EAD3" stroke="#8C5C45" stroke-width="8" filter="url(#shadow)" stroke-linejoin="round" />
+  
+  <!-- KATANGURI'S Text -->
+  <text>
+    <textPath href="#banner-text-path" startOffset="50%" text-anchor="middle" fill="#1A1A1A" font-family="'Georgia', serif" font-size="72" font-weight="bold" letter-spacing="1">
+      KATANGURI'S
+    </textPath>
+  </text>
+</svg>

@@ -1,0 +1,106 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Kitchen API Dashboard",
+    "tags": ["kitchen", "api"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Request Rate (req/s)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+        "targets": [
+          {
+            "expr": "rate(kitchen_requests_total[5m])",
+            "legendFormat": "{{method}} {{route}} {{status_code}}"
+          }
+        ]
+      },
+      {
+        "title": "Request Latency (p50/p95/p99)",
+        "type": "timeseries",
+        "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(kitchen_request_duration_ms_bucket[5m]))",
+            "legendFormat": "p50"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(kitchen_request_duration_ms_bucket[5m]))",
+            "legendFormat": "p95"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(kitchen_request_duration_ms_bucket[5m]))",
+            "legendFormat": "p99"
+          }
+        ]
+      },
+      {
+        "title": "5xx Error Rate",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 0, "y": 8 },
+        "targets": [
+          {
+            "expr": "sum(rate(kitchen_requests_5xx[5m])) / sum(rate(kitchen_requests_total[5m])) * 100",
+            "legendFormat": "Error %"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "steps": [
+                { "value": 0, "color": "green" },
+                { "value": 1, "color": "yellow" },
+                { "value": 5, "color": "red" }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Orders Created",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 6, "y": 8 },
+        "targets": [
+          {
+            "expr": "sum(increase(kitchen_orders_created_total[1h]))",
+            "legendFormat": "Orders/hour"
+          }
+        ]
+      },
+      {
+        "title": "SSE Connected Clients",
+        "type": "stat",
+        "gridPos": { "h": 4, "w": 6, "x": 12, "y": 8 },
+        "targets": [
+          {
+            "expr": "kitchen_sse_clients",
+            "legendFormat": "Clients"
+          }
+        ]
+      },
+      {
+        "title": "DB Connection Pool",
+        "type": "timeseries",
+        "gridPos": { "h": 4, "w": 6, "x": 18, "y": 8 },
+        "targets": [
+          {
+            "expr": "kitchen_db_pool_total",
+            "legendFormat": "Total"
+          },
+          {
+            "expr": "kitchen_db_pool_idle",
+            "legendFormat": "Idle"
+          },
+          {
+            "expr": "kitchen_db_pool_waiting",
+            "legendFormat": "Waiting"
+          }
+        ]
+      }
+    ],
+    "time": { "from": "now-1h", "to": "now" },
+    "refresh": "10s"
+  }
+}
