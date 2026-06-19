@@ -52,6 +52,12 @@ services:
         value: "79.5941"
       - key: RESEND_API_KEY
         value: ""
+      - key: SUPABASE_JWT_SECRET
+        value: "f9014275-a96b-4c3c-b960-a81cf125ae97"
+      - key: SUPABASE_URL
+        value: "https://jtlysqdvodxirnxotxlw.supabase.co"
+      - key: SUPABASE_ANON_KEY
+        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0bHlzcWR2b2R4aXJueG90eGx3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MTAzMzIsImV4cCI6MjA5NjQ4NjMzMn0.tH9BY_jVE7CPHZ1jLskr24nhbp15R49CzmWzZmuyW7g"
 
   # ── Redis Key-Value Store ──
   - type: keyvalue

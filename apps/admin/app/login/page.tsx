@@ -9,13 +9,13 @@ type Step = 'choose' | 'email-otp' | 'otp-verify';
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const { login, setAuth, user, isLoading } = useAdminAuthStore();
+  const { setAuth, user, isLoading } = useAdminAuthStore();
   const [step, setStep] = useState<Step>('choose');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
   useEffect(() => {

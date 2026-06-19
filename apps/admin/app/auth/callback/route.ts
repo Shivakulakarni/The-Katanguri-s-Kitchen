@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
       console.error('[Auth Callback] Exchange failed:', error.message);
     }
