@@ -29,7 +29,8 @@ function TrackPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderIdStr = searchParams?.get('id') ?? null;
-  const orderId = orderIdStr ? parseInt(orderIdStr) : null;
+  const orderIdRaw = orderIdStr ? parseInt(orderIdStr) : null;
+  const orderId = orderIdRaw !== null && !isNaN(orderIdRaw) ? orderIdRaw : null;
   const { orderData, status: connStatus, isLive, fetchError } = useOrderStream(orderId ?? 0);
 
   // Rider tracking state — hooks must be before any early return
