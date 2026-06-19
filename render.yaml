@@ -48,6 +48,8 @@ services:
         value: "17.9784"
       - key: KITCHEN_LNG
         value: "79.5941"
+      - key: RESEND_API_KEY
+        value: ""
 
   # ── Redis Key-Value Store ──
   - type: keyvalue

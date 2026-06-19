@@ -42,7 +42,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https://images.unsplash.com https://images.pexels.com https://*.supabase.co",
               "font-src 'self'",
-              `connect-src 'self' ${API_URL} https://*.supabase.co wss://*.supabase.co https://api.stripe.com`,
+              `connect-src 'self' ${API_URL} https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://images.unsplash.com https://images.pexels.com`,
               "frame-src 'self' https://js.stripe.com https://hooks.stripe.com",
               "object-src 'none'",
               "base-uri 'self'",
