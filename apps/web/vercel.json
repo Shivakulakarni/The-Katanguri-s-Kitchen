@@ -1,4 +1,4 @@
 {
   "installCommand": "cd ../.. && npm install",
-  "buildCommand": "npm run build -w packages/shared && npm run build -w apps/web"
+  "buildCommand": "cd ../.. && npm run build -w packages/shared && npm run build -w apps/web"
 }
