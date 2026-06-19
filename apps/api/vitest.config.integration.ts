@@ -7,7 +7,13 @@ export default defineConfig({
     include: ['src/**/*.integration.test.ts'],
     testTimeout: 30000,
     hookTimeout: 30000,
-    // Only run if DATABASE_URL is set
     pool: 'forks',
+    forks: {
+      singleFork: true,
+    },
+    maxWorkers: 1,
+    sequence: {
+      concurrent: false,
+    },
   },
 });

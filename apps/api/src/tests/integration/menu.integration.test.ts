@@ -56,7 +56,7 @@ describeDb('Menu Integration Tests', () => {
     expect(dish).toBeDefined();
     expect(dish.id).toBeGreaterThan(0);
     expect(dish.name).toBe('TEST:Chicken Biryani');
-    expect(dish.price).toBe('250');
+    expect(parseFloat(dish.price)).toBe(250);
     expect(dish.categoryId).toBe(cat.id);
   });
 
@@ -82,7 +82,7 @@ describeDb('Menu Integration Tests', () => {
       .where(eq(dishes.id, dish.id))
       .returning();
 
-    expect(updated.price).toBe('300');
+    expect(parseFloat(updated.price)).toBe(300);
   });
 
   it('can soft-delete a dish', async () => {

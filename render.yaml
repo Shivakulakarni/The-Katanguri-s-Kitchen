@@ -20,7 +20,10 @@ services:
           name: kitchen-db
           property: connectionString
       - key: REDIS_URL
-        value: ""
+        fromService:
+          name: kitchen-redis
+          type: keyvalue
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
@@ -46,12 +49,15 @@ services:
       - key: KITCHEN_LNG
         value: "79.5941"
 
+  # ── Redis Key-Value Store ──
+  - type: keyvalue
+    name: kitchen-redis
+    plan: free
+    ipAllowList: []
+
 # ── Databases ──
 databases:
   - name: kitchen-db
     plan: free
     databaseName: kitchen_db
     user: kitchen
-
-  - name: kitchen-redis
-    plan: free

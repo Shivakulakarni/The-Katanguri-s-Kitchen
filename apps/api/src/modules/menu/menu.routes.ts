@@ -15,18 +15,25 @@ function getAuditCtx(request: any): AuditContext {
   return user ? { userId: user.customerId, userRole: user.role } : {};
 }
 
+async function cacheGet(key: string): Promise<string | null> {
+  try { return await redis.get(key); } catch { return null; }
+}
+async function cacheSet(key: string, ttl: number, value: string): Promise<void> {
+  try { await redis.setex(key, ttl, value); } catch { /* ignore cache write failure */ }
+}
+
 export async function menuRoutes(app: FastifyInstance) {
   app.get('/api/v1/menu', async (request) => {
     const { category } = request.query as { category?: string };
 
-    const cached = await redis.get(MENU_CACHE_KEY);
+    const cached = await cacheGet(MENU_CACHE_KEY);
     if (cached && !category) {
       return JSON.parse(cached);
     }
 
     if (category) {
       const categoryKey = `${MENU_CACHE_KEY}:cat:${category.toLowerCase()}`;
-      const cachedCategory = await redis.get(categoryKey);
+      const cachedCategory = await cacheGet(categoryKey);
       if (cachedCategory) return JSON.parse(cachedCategory);
     }
 
@@ -44,13 +51,13 @@ export async function menuRoutes(app: FastifyInstance) {
     }));
 
     if (!category) {
-      await redis.setex(MENU_CACHE_KEY, MENU_CACHE_TTL, JSON.stringify(menu));
+      await cacheSet(MENU_CACHE_KEY, MENU_CACHE_TTL, JSON.stringify(menu));
     }
 
     if (category) {
       const filtered = menu.filter(c => c.name.toLowerCase() === category.toLowerCase());
       const categoryKey = `${MENU_CACHE_KEY}:cat:${category.toLowerCase()}`;
-      await redis.setex(categoryKey, MENU_CACHE_TTL, JSON.stringify(filtered));
+      await cacheSet(categoryKey, MENU_CACHE_TTL, JSON.stringify(filtered));
       return filtered;
     }
     return menu;

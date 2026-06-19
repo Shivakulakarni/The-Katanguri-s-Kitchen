@@ -40,7 +40,7 @@ describeDb('Order Integration Tests', () => {
     expect(order).toBeDefined();
     expect(order.id).toBeGreaterThan(0);
     expect(order.status).toBe('PENDING');
-    expect(order.totalAmount).toBe('500');
+    expect(parseFloat(order.totalAmount)).toBe(500);
 
     // Add order items
     const [item] = await db.insert(orderItems).values({

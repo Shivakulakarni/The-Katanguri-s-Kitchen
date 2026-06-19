@@ -2,6 +2,7 @@
  * Integration test helper — provides real DB/Redis connections for testing.
  * Requires DATABASE_URL and REDIS_URL environment variables.
  */
+import 'dotenv/config';
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import * as menuSchema from '../../db/schemas/menu.js';
@@ -63,6 +64,8 @@ export async function cleanupDatabase() {
     await queryClient`DELETE FROM orders WHERE notes LIKE 'TEST:%'`;
     await queryClient`DELETE FROM customer_addresses WHERE customer_id IN (SELECT id FROM customers WHERE email LIKE '%@test.local')`;
     await queryClient`DELETE FROM customers WHERE email LIKE '%@test.local'`;
+    await queryClient`DELETE FROM dishes WHERE name LIKE 'TEST:%'`;
+    await queryClient`DELETE FROM categories WHERE name LIKE 'TEST:%'`;
   } catch {
     // Tables may not exist yet — that's fine
   }
