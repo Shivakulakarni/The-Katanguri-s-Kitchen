@@ -29,8 +29,8 @@ function TrackPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const orderIdStr = searchParams?.get('id') ?? null;
-  const orderId = orderIdStr ? parseInt(orderIdStr) : NaN;
-  const { orderData, status: connStatus, isLive, fetchError } = useOrderStream(orderId || 0);
+  const orderId = orderIdStr ? parseInt(orderIdStr) : null;
+  const { orderData, status: connStatus, isLive, fetchError } = useOrderStream(orderId ?? 0);
 
   // Rider tracking state — hooks must be before any early return
   const [riderPos, setRiderPos] = useState<any>(null);
@@ -84,21 +84,7 @@ function TrackPageInner() {
     return () => es.close();
   }, [orderId, showMap]);
 
-  if (isNaN(orderId)) {
-    return (
-      <div className="container" style={{ paddingTop: 80, maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
-        <div className="card" style={{ padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Invalid Order ID</h1>
-          <p style={{ color: '#767676', fontSize: 14, marginBottom: 24 }}>
-            The order ID provided is not valid. Please check your order link and try again.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!orderId) {
+  if (orderId === null) {
     return (
       <div className="container" style={{ paddingTop: 80, maxWidth: 420, margin: '0 auto', textAlign: 'center' }}>
         <div className="card" style={{ padding: 40 }}>

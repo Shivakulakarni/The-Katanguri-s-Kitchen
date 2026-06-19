@@ -30,6 +30,45 @@ export default function AIChatPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.matchMedia('(max-width: 768px)').matches);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  useEffect(() => {
+    const mainEl = document.querySelector('main.admin-main') as HTMLElement;
+    if (mainEl) {
+      const originalOverflow = mainEl.style.overflow;
+      const originalPadding = mainEl.style.padding;
+      const originalHeight = mainEl.style.height;
+      const originalBg = mainEl.style.backgroundColor;
+      
+      const checkAndStyleMain = () => {
+        const mobile = window.matchMedia('(max-width: 768px)').matches;
+        mainEl.style.overflow = 'hidden';
+        mainEl.style.padding = mobile ? '12px' : '16px';
+        mainEl.style.height = mobile ? 'calc(100vh - 56px)' : '100vh';
+        mainEl.style.backgroundColor = '#0b0f19';
+      };
+      
+      checkAndStyleMain();
+      window.addEventListener('resize', checkAndStyleMain);
+      
+      return () => {
+        window.removeEventListener('resize', checkAndStyleMain);
+        mainEl.style.overflow = originalOverflow;
+        mainEl.style.padding = originalPadding;
+        mainEl.style.height = originalHeight;
+        mainEl.style.backgroundColor = originalBg;
+      };
+    }
+  }, []);
 
   const scrollToBottom = () => {
     const container = chatContainerRef.current;
@@ -99,9 +138,10 @@ export default function AIChatPage() {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: '320px 1fr',
-      height: 'calc(100vh - 100px)',
-      gap: '24px',
+      gridTemplateColumns: isMobile ? '1fr' : '320px 1fr',
+      gridTemplateRows: isMobile ? 'auto 1fr' : 'none',
+      height: '100%',
+      gap: isMobile ? '12px' : '24px',
       color: '#e5e7eb',
       fontFamily: '"Outfit", system-ui, -apple-system, sans-serif',
       overflow: 'hidden',
@@ -111,11 +151,12 @@ export default function AIChatPage() {
         background: '#111827',
         border: '1px solid #1f2937',
         borderRadius: '16px',
-        padding: '24px',
+        padding: isMobile ? '16px' : '24px',
         display: 'flex',
         flexDirection: 'column',
         gap: '20px',
         overflowY: 'auto',
+        maxHeight: isMobile ? '150px' : undefined,
       }}>
         <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, borderBottom: '1px solid #1f2937', paddingBottom: '12px' }}>
           Operations Overview
