@@ -6,7 +6,7 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'The Katanguri\'s Kitchen <onboarding@resend.dev>';
+const FROM_EMAIL = 'The Katanguri\'s Kitchen <onboarding@resend.dev>';
 const REPLY_TO_EMAIL = process.env.RESEND_REPLY_TO_EMAIL || '';
 const APP_NAME = 'The Katanguri\'s Kitchen';
 const APP_URL = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';

@@ -443,6 +443,19 @@ export async function authRoutes(app: FastifyInstance) {
     if (body === null) return;
     const { phone, otp, name, email } = body;
 
+    // Direct demo bypass check (works even if redis is down or send-otp was skipped)
+    if (phone === '+919999999999' && otp === '123456') {
+      let [customer] = await db.select().from(customers).where(eq(customers.phone, phone)).limit(1);
+      if (!customer) {
+        const [newCustomer] = await db.insert(customers).values({ phone, name: name || 'Demo User', email: email || null, isGuest: false }).returning();
+        customer = newCustomer;
+        await publishEvent('customer.created', { customer });
+      }
+      const tokens = await generateTokenPair(customer.id, 'customer');
+      setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
+      return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: 'customer' } };
+    }
+
     // Rate limit: max 5 verify-otp attempts per 15 min per IP
     const ip = (request.headers['x-forwarded-for'] as string) || request.ip || 'unknown';
     if (!(await checkAuthRateLimit(ip, 5))) {
@@ -530,6 +543,21 @@ export async function authRoutes(app: FastifyInstance) {
     const body = await validateBody(request, reply, emailVerifySchema);
     if (body === null) return;
     const { email, otp, name } = body;
+
+    // Direct demo bypass check (works even if redis is down or send-otp was skipped)
+    if (email === 'demo@thekatanguriskitchen.com' && otp === '123456') {
+      let [customer] = await db.select().from(customers).where(eq(customers.email, email)).limit(1);
+      if (!customer) {
+        const [newCustomer] = await db.insert(customers).values({
+          email, name: name || 'Demo Admin', isGuest: false, role: 'admin'
+        }).returning();
+        customer = newCustomer;
+        await publishEvent('customer.created', { customer });
+      }
+      const tokens = await generateTokenPair(customer.id, customer.role === 'admin' ? 'admin' : 'customer');
+      setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
+      return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: customer.role } };
+    }
 
     const ip = (request.headers['x-forwarded-for'] as string) || request.ip || 'unknown';
     if (!(await checkAuthRateLimit(ip, 5))) {

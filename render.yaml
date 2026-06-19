@@ -37,7 +37,7 @@ services:
       - key: APP_URL
         value: "https://the-katanguris-kitchen.vercel.app"
       - key: RESEND_FROM_EMAIL
-        value: "orders@thekatanguriskitchen.com"
+        sync: false
       - key: ALERT_EMAIL_TO
         value: "admin@thekatanguriskitchen.com"
       - key: TWILIO_PHONE_NUMBER
