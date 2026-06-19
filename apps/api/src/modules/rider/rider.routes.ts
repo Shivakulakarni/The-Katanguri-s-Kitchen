@@ -734,7 +734,7 @@ export async function riderRoutes(app: FastifyInstance) {
       clearInterval(heartbeat);
       try { riderSub.unsubscribe(locationChannel); } catch { /* ignore */ }
       riderSub.off('message', onMessage);
-      riderSub.disconnect().catch(() => {});
+      riderSub.disconnect();
     });
   });
 }
