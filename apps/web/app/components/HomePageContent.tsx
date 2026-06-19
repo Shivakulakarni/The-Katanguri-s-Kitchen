@@ -95,7 +95,7 @@ export default function HomePageContent() {
               width: 400, height: 400, borderRadius: 'var(--rounded-xxxl)',
               overflow: 'hidden', border: '1px solid var(--hairline-soft)', position: 'relative',
             }}>
-              <Image src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&h=800&fit=crop" alt="Delicious Biryani from The Katanguri's Kitchen" fill sizes="400px" style={{ objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=800&fit=crop'; }} />
+              <img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&h=800&fit=crop" alt="Delicious Biryani from The Katanguri's Kitchen" width={400} height={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="eager" fetchPriority="high" onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=800&fit=crop'; }} />
             </div>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function HomePageContent() {
             <Link key={c.id} href={`/menu?category=${encodeURIComponent(c.name)}`} className="card" style={{
               minWidth: 140, padding: 0, overflow: 'hidden', position: 'relative',
             }}>
-              <Image src={CATEGORY_IMAGES[c.name] || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=200&fit=crop'} alt={c.name} width={140} height={140} style={{ objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+              <img src={CATEGORY_IMAGES[c.name] || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=200&fit=crop'} alt={c.name} width={140} height={140} style={{ objectFit: 'cover', width: '100%', height: 140 }} loading="eager" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
               <div style={{ padding: '12px 16px', textAlign: 'center', background: 'var(--canvas)' }}>
                 <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink-deep)' }}>{c.name}</div>
                 <div style={{ fontSize: 11, color: 'var(--stone)' }}>{c.dishes.length} items</div>
@@ -151,7 +151,7 @@ export default function HomePageContent() {
           {popularDishes.map((dish, i) => (
             <div key={dish.id} className="card" style={{ animation: `fadeInUp 0.3s ease ${i * 0.08}s forwards`, opacity: 0 }}>
               <div style={{ position: 'relative', height: 180, borderRadius: 'var(--rounded-xxxl) var(--rounded-xxxl) 0 0', overflow: 'hidden' }}>
-                <Image src={getDishImage(dish.name, dish.imageUrl, dish.category?.name)} alt={dish.name} fill sizes="260px" style={{ objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).src = FALLBACK_DISH_IMAGE; }} />
+                <img src={getDishImage(dish.name, dish.imageUrl, dish.category?.name)} alt={dish.name} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} loading="eager" onError={e => { (e.target as HTMLImageElement).src = FALLBACK_DISH_IMAGE; }} />
                 <span className={`tag ${dish.isVeg ? 'tag-veg' : 'tag-nonveg'}`}
                   style={{ position: 'absolute', top: 12, left: 12 }}>
                   {dish.isVeg ? 'VEG' : 'NON-VEG'}
