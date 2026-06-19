@@ -162,19 +162,9 @@ export async function authRoutes(app: FastifyInstance) {
         const { data, error } = await supabaseAdmin.auth.verifyOtp({ phone, token: otp, type: 'sms' });
         if (!error) {
           const customer = await upsertCustomerFromSupabase(data.user, { phone, name });
-    const userRole = customer.role || 'customer';
-
-    // Auto-promote emails listed in ADMIN_EMAILS env var
-    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-    if (adminEmails.includes(email.toLowerCase()) && userRole !== 'admin') {
-      const [updated] = await db.update(customers).set({ role: 'admin' }).where(eq(customers.id, customer.id)).returning();
-      customer = updated;
-    }
-
-    const finalRole = customer.role || 'customer';
-    const tokens = await generateTokenPair(customer.id, finalRole);
-    setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
-    return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: finalRole } };
+          const tokens = await generateTokenPair(customer.id, customer.role || 'customer');
+          setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
+          return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: customer.role || 'customer' } };
         }
         logger.warn({ err: error.message }, '[AUTH] Supabase register OTP failed, falling back to local');
       }
@@ -601,9 +591,23 @@ export async function authRoutes(app: FastifyInstance) {
       customer = updated;
     }
 
-    const tokens = await generateTokenPair(customer.id, 'customer');
+    const userRole = customer.role || 'customer';
+
+    // Auto-promote emails listed in ADMIN_EMAILS env var
+    let finalRole = userRole;
+    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+    if (adminEmails.includes(email.toLowerCase()) && userRole !== 'admin') {
+      const [updated] = await db.update(customers).set({ role: 'admin' }).where(eq(customers.id, customer.id)).returning();
+      if (updated) {
+        finalRole = updated.role || 'admin';
+      } else {
+        finalRole = 'admin';
+      }
+    }
+
+    const tokens = await generateTokenPair(customer.id, finalRole);
     setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
-    return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: 'customer' } };
+    return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: finalRole } };
   });
 
   // ── Social Login (requires Supabase OAuth) ──
