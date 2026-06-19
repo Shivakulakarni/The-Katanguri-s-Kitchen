@@ -1,5 +1,5 @@
 import { Queue, Worker } from 'bullmq';
-import { redis } from '../../utils/redis.js';
+import { redis, createBullMQConnection } from '../../utils/redis.js';
 import { db } from '../../db/connection.js';
 import { ingredients, inventoryTransactions } from '../../db/schemas/inventory.js';
 import { payments } from '../../db/schemas/payment.js';
@@ -18,8 +18,8 @@ import { join } from 'path';
 import { mkdirSync, statSync, writeFileSync } from 'fs';
 import { gzipSync } from 'zlib';
 
-// BullMQ requires maxRetriesPerRequest to be null — use a dedicated connection
-const connection = (redis as any).duplicate({ maxRetriesPerRequest: null });
+// BullMQ requires maxRetriesPerRequest to be null — create a dedicated fresh connection
+const connection = createBullMQConnection();
 let cronQueue: Queue | null = null;
 
 const execFileAsync = promisify(execFile);

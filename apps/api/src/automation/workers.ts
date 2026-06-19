@@ -1,12 +1,12 @@
 import { Worker } from 'bullmq';
-import { redis } from '../utils/redis.js';
+import { createBullMQConnection } from '../utils/redis.js';
 import { logger } from '../utils/logger.js';
 import { handleOrderPlaced, handleOrderConfirmed, handleOrderReady, handleOrderDelivered, handleOrderCancelled } from './workflows/orderWorkflows.js';
 import { handleOrderConfirmation, handleOutForDelivery, handleFeedbackRequest, handleAbandonedCart, handleReEngagement } from './workflows/communicationWorkflows.js';
 import { handleAssignRider } from './workflows/dispatchWorkflows.js';
 
-// BullMQ requires maxRetriesPerRequest to be null — use a dedicated connection
-const connection = (redis as any).duplicate({ maxRetriesPerRequest: null });
+// BullMQ requires maxRetriesPerRequest to be null — create a dedicated fresh connection
+const connection = createBullMQConnection();
 const workerLogger = logger.child({ module: 'workers' });
 
 let workersSupported: boolean | null = null;
