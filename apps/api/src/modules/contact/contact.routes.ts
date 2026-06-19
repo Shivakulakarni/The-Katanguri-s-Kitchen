@@ -19,7 +19,7 @@ export async function contactRoutes(app: FastifyInstance) {
     const { name, email, subject, message } = request.body as any;
     request.log.info({ name, email, subject }, 'Contact form submission');
     
-    if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY !== 'SG.CHANGE_ME') {
+    if (process.env.RESEND_API_KEY) {
       try {
         await sendContactForm(name, email, subject, message);
       } catch (err: any) {

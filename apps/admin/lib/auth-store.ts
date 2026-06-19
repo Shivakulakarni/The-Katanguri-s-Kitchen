@@ -61,7 +61,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
             if (data.user?.role === 'admin') {
               set({
                 user: { id: data.user.id, email: data.user.email, name: data.user.name, role: data.user.role },
-                token: data.accessToken || data.token || 'supabase-session',
+                token: data.accessToken || data.token || session.access_token,
                 isLoading: false,
               });
               return;
@@ -81,7 +81,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
         if (c && c.id && c.role === 'admin') {
           set({
             user: { id: c.id, email: c.email || '', name: c.name || '', role: c.role || 'customer' },
-            token: 'cookie-auth',
+            token: 'cookie-session',
             isLoading: false,
           });
           return;

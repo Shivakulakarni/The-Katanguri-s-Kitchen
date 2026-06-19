@@ -371,11 +371,10 @@ export async function authRoutes(app: FastifyInstance) {
     const smsResult = await sendSMS(phone, `Your OTP for The Katanguri's Kitchen is ${otp}. Valid for 5 minutes.`);
     
     if (!smsResult.success) {
-      logger.warn({ phone, error: smsResult.error }, '[AUTH] SMS delivery failed');
-      return {
-        message: 'SMS delivery unavailable. Please use email OTP instead.',
-        smsFailed: true,
-      };
+      logger.warn({ phone }, '[AUTH] SMS delivery failed');
+      return reply.status(503).send({
+        error: 'SMS delivery temporarily unavailable. Please try again later or use email OTP.',
+      });
     }
 
     return { message: 'OTP sent to your phone' };

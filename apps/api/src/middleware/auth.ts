@@ -17,7 +17,7 @@ export async function isAccountLocked(identifier: string): Promise<boolean> {
     const locked = await redis.get(`${LOCKOUT_PREFIX}${identifier}`);
     return locked !== null;
   } catch {
-    return false; // Redis unavailable — fail open
+    return true; // Redis unavailable — fail closed (block login)
   }
 }
 

@@ -53,7 +53,7 @@ export async function sendSMS(
     return { success: true, provider: 'twilio', sid: result.sid };
   } catch (err: any) {
     logger.error({ err: err.message, to: recipient, code: err.code }, '[SMS] Failed to send');
-    return { success: false, error: err.message, provider: 'twilio' };
+    return { success: false, error: 'SMS delivery failed', provider: 'twilio' };
   }
 }
 

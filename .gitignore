@@ -20,6 +20,8 @@ demo-output/
 apps/*/.env
 apps/*/.env.local
 apps/*/.env.*.local
+apps/*/.env.render
+apps/*/.env.vercel
 
 # k6 binary (download via script, don't commit)
 k6/k6.exe
@@ -36,3 +38,4 @@ tests/qa-report/
 docker/nginx/certs/privkey.pem
 
 .vercel
+.env.vercel.production

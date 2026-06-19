@@ -36,12 +36,12 @@ services:
         value: "https://the-katanguris-kitchen.vercel.app,https://the-katanguris-kitchen-admin.vercel.app"
       - key: APP_URL
         value: "https://the-katanguris-kitchen.vercel.app"
-      - key: SENDGRID_FROM_EMAIL
+      - key: RESEND_FROM_EMAIL
         value: "orders@thekatanguriskitchen.com"
       - key: ALERT_EMAIL_TO
         value: "admin@thekatanguriskitchen.com"
       - key: TWILIO_PHONE_NUMBER
-        value: "+919676164725"
+        sync: false
       - key: ENABLE_DEV_BYPASS
         value: "false"
       - key: LOG_LEVEL

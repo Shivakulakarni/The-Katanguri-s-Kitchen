@@ -15,7 +15,10 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      console.error('[Auth Callback] Exchange failed:', error.message);
+    }
     if (!error) {
       const forwardedHost = request.headers.get('x-forwarded-host');
       const isLocalEnv = process.env.NODE_ENV === 'development';

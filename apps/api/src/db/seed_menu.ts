@@ -3,7 +3,11 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { categories, dishes } from './schemas/menu.js';
 
-const connectionString = process.env.DATABASE_URL || 'postgres://kitchen:kitchen_pass@localhost:5432/kitchen_db';
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  console.error('DATABASE_URL environment variable is required');
+  process.exit(1);
+}
 const client = postgres(connectionString);
 const db = drizzle(client);
 

@@ -20,7 +20,6 @@ const REFRESH_KEY = new TextEncoder().encode(REFRESH_SECRET);
 export interface TokenPair {
   accessToken: string;
   refreshToken: string;
-  token: string;
 }
 
 export interface TokenPayload {
@@ -63,7 +62,7 @@ export async function generateTokenPair(customerId: number, role: string): Promi
     // Redis unavailable — token won't be revocable but auth still works
   }
 
-  return { accessToken, refreshToken, token: accessToken };
+  return { accessToken, refreshToken };
 }
 
 /**
