@@ -1,10 +1,11 @@
-import { Redis } from 'ioredis';
+import { Redis, RedisOptions } from 'ioredis';
 import { logger } from './logger.js';
 
 const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379';
+const isTls = REDIS_URL.startsWith('rediss://');
 
 function createRedis(name: string): Redis {
-  const client = new Redis(REDIS_URL, {
+  const opts: RedisOptions = {
     maxRetriesPerRequest: 3,
     retryStrategy: (times) => {
       if (times > 20) return null;
@@ -16,7 +17,13 @@ function createRedis(name: string): Redis {
       const targetErrors = ['READONLY', 'ECONNRESET', 'ECONNREFUSED', 'ETIMEDOUT'];
       return targetErrors.some((e) => err.message.includes(e));
     },
-  });
+  };
+
+  if (isTls) {
+    opts.tls = {};
+  }
+
+  const client = new Redis(REDIS_URL, opts);
 
   client.on('error', (err: any) => {
     logger.error({ err: err.message }, `[Redis:${name}] Connection error`);
