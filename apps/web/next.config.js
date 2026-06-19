@@ -11,7 +11,7 @@ const nextConfig = {
     instrumentationHook: true,
   },
   images: {
-    unoptimized: process.env.NODE_ENV === 'development',
+    unoptimized: process.env.NODE_ENV === 'development' || !!process.env.VERCEL,
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'images.pexels.com' },
