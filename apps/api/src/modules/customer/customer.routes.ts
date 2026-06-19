@@ -162,7 +162,8 @@ export async function customerRoutes(app: FastifyInstance) {
   // ── Favorites CRUD ──
 
   // List favorites
-  app.get('/api/v1/customer/favorites', async (request) => {
+  app.get('/api/v1/customer/favorites', async (request, reply) => {
+    try {
     const user = request.user;
     const cacheKey = `cache:customer:favorites:${user.customerId}`;
     const cached = await redis.get(cacheKey);
@@ -183,6 +184,10 @@ export async function customerRoutes(app: FastifyInstance) {
     const result = { favorites: favs };
     await redis.setex(cacheKey, CUSTOMER_FAVORITES_CACHE_TTL, JSON.stringify(result));
     return result;
+    } catch (err: any) {
+      console.error('[FAVORITES] Error:', err?.message, err?.cause);
+      return reply.status(500).send({ error: 'Failed to load favorites', details: err?.message });
+    }
   });
 
   // Add favorite
@@ -229,7 +234,8 @@ export async function customerRoutes(app: FastifyInstance) {
   });
 
   // ── Customer Stats ──
-  app.get('/api/v1/customer/stats', async (request) => {
+  app.get('/api/v1/customer/stats', async (request, reply) => {
+    try {
     const user = request.user;
     const cacheKey = `cache:customer:stats:${user.customerId}`;
     const cached = await redis.get(cacheKey);
@@ -288,6 +294,10 @@ export async function customerRoutes(app: FastifyInstance) {
     };
     await redis.setex(cacheKey, CUSTOMER_STATS_CACHE_TTL, JSON.stringify(result));
     return result;
+    } catch (err: any) {
+      console.error('[STATS] Error:', err?.message, err?.cause);
+      return reply.status(500).send({ error: 'Failed to load stats', details: err?.message });
+    }
   });
 
   // Admin routes (require admin role)
