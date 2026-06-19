@@ -14,15 +14,13 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3001
+        value: "3001"
       - key: DATABASE_URL
         fromDatabase:
           name: kitchen-db
           property: connectionString
       - key: REDIS_URL
-        fromRedis:
-          name: kitchen-redis
-          property: connectionString
+        value: ""
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_REFRESH_SECRET
