@@ -1,7 +1,7 @@
 {
-  "name": "The Katanguri's Kitchen",
-  "short_name": "Katanguri",
-  "description": "Authentic South Indian Cloud Kitchen in Warangal",
+  "name": "The Katanguri's Kitchen - Admin",
+  "short_name": "Katanguri Admin",
+  "description": "Admin dashboard for The Katanguri's Kitchen",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

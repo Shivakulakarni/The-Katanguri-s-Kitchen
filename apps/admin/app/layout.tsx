@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "The Katanguri's Kitchen — Admin",
   description: 'Admin dashboard for managing orders, menu, inventory, and deliveries.',
-  icons: { icon: '/admin/favicon.png' },
+  icons: { icon: '/favicon.png' },
   robots: { index: false, follow: false },
 };
 
