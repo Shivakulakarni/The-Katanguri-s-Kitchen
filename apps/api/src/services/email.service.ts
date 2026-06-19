@@ -12,12 +12,17 @@ const REPLY_TO_EMAIL = process.env.RESEND_REPLY_TO_EMAIL || '';
 const APP_NAME = 'The Katanguri\'s Kitchen';
 const APP_URL = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
 
-const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
-
-if (resend) {
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (_resend) return _resend;
+  const key = process.env.RESEND_API_KEY || '';
+  if (!key) {
+    logger.warn('[EMAIL] RESEND_API_KEY not set — emails will not be sent');
+    return null;
+  }
+  _resend = new Resend(key);
   logger.info('[EMAIL] Resend initialized');
-} else {
-  logger.warn('[EMAIL] RESEND_API_KEY not set — emails will not be sent');
+  return _resend;
 }
 
 function baseTemplate(title: string, content: string): string {
@@ -55,6 +60,7 @@ export interface SendEmailOptions {
 }
 
 async function send(options: SendEmailOptions): Promise<boolean> {
+  const resend = getResend();
   if (!resend) {
     logger.warn({ to: options.to, subject: options.subject }, '[EMAIL] Skipped — no provider configured');
     return false;
