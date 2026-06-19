@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { supabase } from './supabase';
 
 interface AdminUser {
   id: number;
@@ -30,6 +31,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
 
   logout: async () => {
     try {
+      if (supabase) await supabase.auth.signOut();
       await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
     } catch {
       // ignore network errors on logout
@@ -39,20 +41,46 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
 
   loadFromStorage: async () => {
     try {
-      const res = await fetch('/api/v1/customer/profile', {
-        credentials: 'include',
-      });
+      // Check Supabase session first (for Google OAuth)
+      if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // Exchange Supabase session for our admin cookie
+          const res = await fetch('/api/v1/auth/social', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || '',
+              accessToken: session.access_token,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.user?.role === 'admin') {
+              set({
+                user: { id: data.user.id, email: data.user.email, name: data.user.name, role: data.user.role },
+                token: data.accessToken || data.token || 'supabase-session',
+                isLoading: false,
+              });
+              return;
+            } else {
+              // Not an admin — sign out from Supabase
+              await supabase.auth.signOut();
+            }
+          }
+        }
+      }
+
+      // Fallback: check cookie-based session
+      const res = await fetch('/api/v1/customer/profile', { credentials: 'include' });
       if (res.ok) {
         const profileData = await res.json();
         const c = profileData?.customer || profileData;
         if (c && c.id && c.role === 'admin') {
           set({
-            user: {
-              id: c.id,
-              email: c.email || '',
-              name: c.name || '',
-              role: c.role || 'customer',
-            },
+            user: { id: c.id, email: c.email || '', name: c.name || '', role: c.role || 'customer' },
             token: 'cookie-auth',
             isLoading: false,
           });
