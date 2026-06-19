@@ -43,7 +43,7 @@ export default function MyOrdersPage() {
   const ordersRef = useRef<Order[]>([]);
 
   const fetchOrders = useCallback(async () => {
-    if (!user) return;
+    if (!token || !user) return;
     try {
       const data = await api.get('/api/v1/orders', token || undefined);
       const list: Order[] = data.orders || [];

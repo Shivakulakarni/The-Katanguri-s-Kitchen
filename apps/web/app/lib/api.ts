@@ -79,7 +79,7 @@ async function request<T = any>(path: string, opts: ApiOptions = {}): Promise<T>
 
       clearTimeout(timeoutId);
 
-      if (res.status === 401 && !path.includes('/auth/')) {
+      if (res.status === 401 && !path.includes('/auth/') && token) {
         const refreshed = await tryRefreshToken();
         if (refreshed) {
           // New controller + timeout for the retry

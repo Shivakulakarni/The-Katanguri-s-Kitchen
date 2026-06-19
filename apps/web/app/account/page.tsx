@@ -33,7 +33,7 @@ export default function AccountPage() {
   const liveStatusesRef = useRef<Record<number, string>>({});
 
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
+    if (!token || !user) { setLoading(false); return; }
     let cancelled = false;
     Promise.all([
       api.get<CustomerProfile>('/api/v1/customer/profile', token || undefined),
