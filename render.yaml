@@ -51,7 +51,7 @@ services:
       - key: KITCHEN_LNG
         value: "79.5941"
       - key: RESEND_API_KEY
-        value: ""
+        value: "re_W7MU1r83_DDcEgExeh9sm1CE5MWkRXRfe"
       - key: SUPABASE_JWT_SECRET
         value: "f9014275-a96b-4c3c-b960-a81cf125ae97"
       - key: SUPABASE_URL
