@@ -1,17 +1,13 @@
 {
-  "builds": [
-    {
-      "src": "apps/web/next.config.js",
-      "use": "@vercel/next",
-      "config": {
-        "images": {
-          "sizes": [640, 800, 1024, 1280, 1920],
-          "remotePatterns": [
-            { "protocol": "https", "hostname": "images.unsplash.com" },
-            { "protocol": "https", "hostname": "images.pexels.com" }
-          ]
-        }
-      }
-    }
-  ]
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "buildCommand": "npm run build -w packages/shared && npm run build -w apps/web",
+  "outputDirectory": "apps/web/.next",
+  "images": {
+    "sizes": [640, 800, 1024, 1280, 1920],
+    "remotePatterns": [
+      { "protocol": "https", "hostname": "images.unsplash.com" },
+      { "protocol": "https", "hostname": "images.pexels.com" }
+    ]
+  }
 }
