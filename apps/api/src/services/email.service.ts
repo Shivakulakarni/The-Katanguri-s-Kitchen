@@ -10,7 +10,7 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'The Katanguri\'s Kitchen <onboarding@resend.dev>';
 const REPLY_TO_EMAIL = process.env.RESEND_REPLY_TO_EMAIL || '';
 const APP_NAME = 'The Katanguri\'s Kitchen';
-const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+const APP_URL = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
 
 const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 

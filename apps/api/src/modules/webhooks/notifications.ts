@@ -82,7 +82,7 @@ function buildAlertMessage(alert: AlertPayload): { subject: string; body: string
     `Threshold: >${alert.thresholdPercent}%`,
     `Time: ${new Date(alert.timestamp).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}`,
     ``,
-    `Action Required: Check webhook health at ${process.env.APP_URL || 'https://thekatanguriskitchen.com'}/webhooks/health`,
+    `Action Required: Check webhook health at ${process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app'}/webhooks/health`,
   ].join('\n');
 
   const slackText = [
@@ -91,7 +91,7 @@ function buildAlertMessage(alert: AlertPayload): { subject: string; body: string
     `> *Error Rate:* ${alert.errorRate}% (${alert.failedCount}/${alert.totalCount} failed)`,
     `> *Window:* Last ${alert.windowMinutes} min`,
     `> *Threshold:* >${alert.thresholdPercent}%`,
-    `<${process.env.APP_URL || 'https://thekatanguriskitchen.com'}/webhooks/health|View Webhook Health>`,
+    `<${process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app'}/webhooks/health|View Webhook Health>`,
   ].join('\n');
 
   return { subject, body, slackText };
