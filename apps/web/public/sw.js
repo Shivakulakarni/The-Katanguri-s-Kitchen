@@ -38,6 +38,10 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.destination === 'image' || request.destination === 'style' || request.destination === 'script') {
+    // Only cache same-origin resources to prevent CSP connect-src violations on third-party assets (like Unsplash/Pexels)
+    if (url.origin !== self.location.origin) {
+      return;
+    }
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
