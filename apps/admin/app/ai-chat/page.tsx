@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getAuthHeaders } from '../../lib/auth-headers';
+import './chat.css';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -146,17 +147,7 @@ export default function AIChatPage() {
       overflow: 'hidden',
     }}>
       {/* Left Column: Operational Insights */}
-      <div style={{
-        background: '#111827',
-        border: '1px solid #1f2937',
-        borderRadius: '16px',
-        padding: isMobile ? '16px' : '24px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '20px',
-        overflowY: 'auto',
-        maxHeight: isMobile ? '150px' : undefined,
-      }}>
+      <div className="admin-insights-panel">
         <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, borderBottom: '1px solid #1f2937', paddingBottom: '12px' }}>
           Operations Overview
         </h2>
@@ -166,36 +157,18 @@ export default function AIChatPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {insights.length === 0 ? (
-              <div style={{
-                padding: '16px',
-                borderRadius: '12px',
-                background: 'rgba(16, 185, 129, 0.05)',
-                border: '1px solid rgba(16, 185, 129, 0.2)',
-                color: '#34d399',
-                fontSize: '13px',
-              }}>
+              <div className="admin-status-ok">
                 ✓ All operations healthy. No critical low-stock alerts.
               </div>
             ) : (
               insights.map((ins, i) => {
-                const isHigh = ins.severity === 'high';
-                const isMedium = ins.severity === 'medium';
-                const color = isHigh ? '#f87171' : isMedium ? '#fbbf24' : '#60a5fa';
-                const bg = isHigh ? 'rgba(239, 68, 68, 0.05)' : isMedium ? 'rgba(245, 158, 11, 0.05)' : 'rgba(59, 130, 246, 0.05)';
-                const border = isHigh ? 'rgba(239, 68, 68, 0.2)' : isMedium ? 'rgba(245, 158, 11, 0.2)' : 'rgba(59, 130, 246, 0.2)';
+                const severityClass = ins.severity === 'high' ? 'severity-high' : ins.severity === 'medium' ? 'severity-medium' : 'severity-low';
+                const color = ins.severity === 'high' ? 'var(--admin-critical)' : ins.severity === 'medium' ? 'var(--admin-warning)' : 'var(--admin-info)';
                 return (
-                  <div
-                    key={i}
-                    style={{
-                      padding: '16px',
-                      borderRadius: '12px',
-                      background: bg,
-                      border: `1px solid ${border}`,
-                    }}
-                  >
+                  <div key={i} className={`admin-insight-card ${severityClass}`}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
                       <span style={{ fontSize: '12px', color }}>●</span>
-                      <strong style={{ fontSize: '13.5px', color: '#ffffff' }}>{ins.title}</strong>
+                      <strong style={{ fontSize: '13.5px', color: 'var(--admin-text)' }}>{ins.title}</strong>
                     </div>
                     <div style={{ fontSize: '12px', color: '#9ca3af', lineHeight: '1.4' }}>{ins.description}</div>
                     {ins.suggestion && (
@@ -203,8 +176,9 @@ export default function AIChatPage() {
                         marginTop: '8px',
                         fontSize: '11px',
                         color,
-                        borderTop: `1px solid ${border}`,
+                        borderTop: `1px solid currentColor`,
                         paddingTop: '6px',
+                        opacity: 0.3,
                       }}>
                         💡 {ins.suggestion}
                       </div>
@@ -218,23 +192,9 @@ export default function AIChatPage() {
       </div>
 
       {/* Right Column: Chat console */}
-      <div style={{
-        background: '#111827',
-        border: '1px solid #1f2937',
-        borderRadius: '16px',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
+      <div className="admin-chat-panel" style={{ height: 'calc(100vh - 100px)' }}>
         {/* Chat Header */}
-        <div style={{
-          padding: '16px 24px',
-          borderBottom: '1px solid #1f2937',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          background: 'linear-gradient(90deg, rgba(239, 68, 68, 0.05) 0%, rgba(0, 0, 0, 0) 100%)',
-        }}>
+        <div className="admin-chat-header">
           <span style={{ fontSize: '24px' }}>💬</span>
           <div style={{ textAlign: 'left' }}>
             <h2 style={{ fontSize: '15px', fontWeight: 700, margin: 0 }}>Operations AI Copilot</h2>
@@ -243,14 +203,7 @@ export default function AIChatPage() {
         </div>
 
         {/* Chat messages */}
-        <div ref={chatContainerRef} style={{
-          flex: 1,
-          padding: '24px',
-          overflowY: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-        }}>
+        <div ref={chatContainerRef} className="admin-chat-messages">
           {messages.map((msg, i) => {
             const isUser = msg.role === 'user';
             return (
@@ -261,28 +214,11 @@ export default function AIChatPage() {
                   justifyContent: isUser ? 'flex-end' : 'flex-start',
                 }}
               >
-                <div style={{
-                  maxWidth: '75%',
-                  padding: '12px 18px',
-                  borderRadius: isUser ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  background: isUser ? '#1f2937' : '#1e1b4b',
-                  border: isUser ? '1px solid #374151' : '1px solid #312e81',
-                  textAlign: 'left',
-                }}>
-                  <div style={{
-                    fontSize: '11px',
-                    color: isUser ? '#9ca3af' : '#818cf8',
-                    fontWeight: 700,
-                    marginBottom: '4px',
-                  }}>
+                <div className={isUser ? 'admin-user-message' : 'admin-ai-message'}>
+                  <div className="msg-label">
                     {isUser ? 'Manager' : 'Operations Copilot'}
                   </div>
-                  <div style={{
-                    fontSize: '14px',
-                    color: '#ffffff',
-                    lineHeight: '1.5',
-                    whiteSpace: 'pre-wrap',
-                  }}>
+                  <div className="msg-content">
                     {msg.content}
                   </div>
                 </div>
@@ -313,14 +249,7 @@ export default function AIChatPage() {
         </div>
 
         {/* Suggestion Chips */}
-        <div style={{
-          padding: '0 24px 12px 24px',
-          display: 'flex',
-          gap: '10px',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}>
+        <div style={{ padding: '0 24px 12px 24px', display: 'flex', gap: '10px', overflowX: 'auto', scrollbarWidth: 'none' }}>
           {[
             'Report today\'s sales summary 📈',
             'What stock is below par level?',
@@ -329,19 +258,7 @@ export default function AIChatPage() {
             <button
               key={chip}
               onClick={() => handleSend(chip)}
-              style={{
-                flexShrink: 0,
-                padding: '8px 14px',
-                borderRadius: '12px',
-                border: '1px solid #374151',
-                background: '#1f2937',
-                color: '#d1d5db',
-                fontSize: '12px',
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-              }}
-              onMouseOver={(e) => (e.currentTarget.style.background = '#374151')}
-              onMouseOut={(e) => (e.currentTarget.style.background = '#1f2937')}
+              className="admin-chat-chip"
             >
               {chip}
             </button>
@@ -354,48 +271,18 @@ export default function AIChatPage() {
             e.preventDefault();
             handleSend();
           }}
-          style={{
-            padding: '20px 24px',
-            borderTop: '1px solid #1f2937',
-            display: 'flex',
-            gap: '12px',
-            background: '#0b0f19',
-          }}
+          className="admin-chat-input-area"
         >
           <input
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Ask operations co-pilot..."
-            style={{
-              flex: 1,
-              background: '#1f2937',
-              border: '1px solid #374151',
-              borderRadius: '12px',
-              padding: '12px 16px',
-              color: '#ffffff',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s',
-            }}
-            onFocus={(e) => (e.target.style.borderColor = '#6366f1')}
-            onBlur={(e) => (e.target.style.borderColor = '#374151')}
+            className="admin-chat-input"
           />
           <button
             type="submit"
-            style={{
-              background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '12px',
-              padding: '12px 24px',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'transform 0.1s',
-            }}
-            onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.95)')}
-            onMouseUp={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+            className="admin-chat-submit"
           >
             Submit
           </button>

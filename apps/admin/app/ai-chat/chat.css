@@ -1,0 +1,196 @@
+/* ── Admin AI Chat Styles (using design tokens) ── */
+
+.admin-chat-panel {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--admin-text);
+}
+
+.admin-chat-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--admin-border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(90deg, rgba(226, 55, 68, 0.05) 0%, rgba(0, 0, 0, 0) 100%);
+}
+
+.admin-chat-messages {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-chat-input-area {
+  padding: 20px 24px;
+  border-top: 1px solid var(--admin-border);
+  display: flex;
+  gap: 12px;
+  background: var(--admin-bg);
+}
+
+.admin-chat-input {
+  flex: 1;
+  background: var(--admin-input-bg);
+  border: 1px solid var(--admin-border-hover);
+  border-radius: var(--admin-radius-sm);
+  padding: 12px 16px;
+  color: var(--admin-text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.admin-chat-input:focus {
+  border-color: var(--admin-ai-accent);
+}
+
+.admin-chat-submit {
+  background: linear-gradient(135deg, var(--admin-primary) 0%, var(--admin-primary-deep) 100%);
+  color: var(--admin-on-primary);
+  border: none;
+  border-radius: var(--admin-radius-sm);
+  padding: 12px 24px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s;
+  font-family: inherit;
+}
+
+.admin-chat-submit:hover {
+  transform: scale(0.98);
+}
+
+.admin-chat-chip {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid var(--admin-border-hover);
+  background: var(--admin-input-bg);
+  color: var(--admin-text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  font-family: inherit;
+}
+
+.admin-chat-chip:hover {
+  background: var(--admin-border-hover);
+  border-color: var(--admin-text-muted);
+}
+
+.admin-ai-message {
+  background: var(--admin-ai-assistant-bg);
+  border: 1px solid var(--admin-ai-assistant-border);
+  border-radius: 16px 16px 16px 4px;
+  padding: 12px 18px;
+  text-align: left;
+}
+
+.admin-ai-message .msg-label {
+  font-size: 11px;
+  color: var(--admin-ai-assistant-name);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.admin-ai-message .msg-content {
+  font-size: 14px;
+  color: var(--admin-text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.admin-user-message {
+  background: var(--admin-ai-user-bg);
+  border: 1px solid var(--admin-ai-user-bg);
+  border-radius: 16px 16px 4px 16px;
+  padding: 12px 18px;
+  text-align: left;
+}
+
+.admin-user-message .msg-label {
+  font-size: 11px;
+  color: var(--admin-text-muted);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.admin-user-message .msg-content {
+  font-size: 14px;
+  color: var(--admin-text);
+  line-height: 1.5;
+}
+
+.admin-insights-panel {
+  background: var(--admin-panel);
+  border: 1px solid var(--admin-border);
+  border-radius: var(--admin-radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  overflow-y: auto;
+}
+
+.admin-insight-card {
+  padding: 16px;
+  border-radius: var(--admin-radius-sm);
+  border: 1px solid;
+}
+
+.admin-insight-card.severity-high {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.admin-insight-card.severity-medium {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.admin-insight-card.severity-low {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.admin-status-ok {
+  padding: 16px;
+  border-radius: var(--admin-radius-sm);
+  background: var(--admin-success-bg);
+  border: 1px solid var(--admin-success-border);
+  color: var(--admin-success);
+  font-size: 13px;
+}
+
+.admin-typing-dots span {
+  animation: bounceDot 1.4s infinite;
+}
+
+.admin-typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.admin-typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes bounceDot {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@media (max-width: 768px) {
+  .admin-chat-panel {
+    height: calc(100vh - 56px);
+  }
+}

@@ -5,6 +5,7 @@ import { AdminAuthProvider } from './auth-provider';
 import AdminShell from './AdminShell';
 import { AdminToastProvider } from './AdminToastProvider';
 import { Outfit, Plus_Jakarta_Sans } from 'next/font/google';
+import './globals.css';
 import './admin.css';
 
 const outfit = Outfit({

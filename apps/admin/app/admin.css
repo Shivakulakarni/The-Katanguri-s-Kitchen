@@ -1,12 +1,17 @@
 :root {
+  /* Brand (shared with customer site) */
   --primary: #e23744;
   --primary-deep: #c62828;
   --on-primary: #ffffff;
+
+  /* Semantic */
   --success: #2e7d32;
   --success-bg: #e8f5e9;
   --warning: #f9a825;
   --warning-bg: #fff8e1;
   --critical: #e41e3f;
+
+  /* Light surfaces */
   --canvas: #ffffff;
   --surface-soft: #f8f9fa;
   --ink-deep: #1c1c1c;
@@ -14,6 +19,37 @@
   --hairline: #dddddd;
   --hairline-soft: #eeeeee;
   --steel: #888888;
+
+  /* Admin dark surfaces */
+  --admin-bg: #0b0f19;
+  --admin-panel: #111827;
+  --admin-border: #1f2937;
+  --admin-border-hover: #374151;
+  --admin-input-bg: #1f2937;
+
+  /* Admin text */
+  --admin-text: #e5e7eb;
+  --admin-text-muted: #9ca3af;
+  --admin-text-dim: #6b7280;
+
+  /* Admin semantic */
+  --admin-success: #34d399;
+  --admin-success-bg: rgba(16, 185, 129, 0.05);
+  --admin-success-border: rgba(16, 185, 129, 0.2);
+  --admin-warning: #fbbf24;
+  --admin-critical: #f87171;
+  --admin-info: #60a5fa;
+
+  /* Admin AI chat */
+  --admin-ai-user-bg: rgba(255, 255, 255, 0.08);
+  --admin-ai-assistant-bg: #1e1b4b;
+  --admin-ai-assistant-border: #312e81;
+  --admin-ai-assistant-name: #818cf8;
+  --admin-ai-accent: #6366f1;
+
+  /* Spacing */
+  --admin-radius: 16px;
+  --admin-radius-sm: 12px;
 }
 
 * {

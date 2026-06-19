@@ -1,0 +1,42 @@
+/* ── Admin Panel Design Tokens ── */
+:root {
+  /* Brand (matches customer site) */
+  --admin-primary: #e23744;
+  --admin-primary-deep: #c62828;
+  --admin-on-primary: #ffffff;
+
+  /* Surfaces */
+  --admin-bg: #0b0f19;
+  --admin-panel: #111827;
+  --admin-border: #1f2937;
+  --admin-border-hover: #374151;
+  --admin-input-bg: #1f2937;
+
+  /* Text */
+  --admin-text: #e5e7eb;
+  --admin-text-muted: #9ca3af;
+  --admin-text-dim: #6b7280;
+  --admin-text-bold: #ffffff;
+
+  /* Semantic */
+  --admin-success: #34d399;
+  --admin-success-bg: rgba(16, 185, 129, 0.05);
+  --admin-success-border: rgba(16, 185, 129, 0.2);
+  --admin-warning: #fbbf24;
+  --admin-critical: #f87171;
+  --admin-info: #60a5fa;
+
+  /* AI Chat */
+  --admin-ai-user-bg: rgba(255, 255, 255, 0.08);
+  --admin-ai-user-border: rgba(255, 255, 255, 0.05);
+  --admin-ai-assistant-bg: #1e1b4b;
+  --admin-ai-assistant-border: #312e81;
+  --admin-ai-assistant-name: #818cf8;
+  --admin-ai-accent: #6366f1;
+
+  /* Spacing */
+  --admin-gap: 24px;
+  --admin-gap-sm: 12px;
+  --admin-radius: 16px;
+  --admin-radius-sm: 12px;
+}
