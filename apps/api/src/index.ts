@@ -233,7 +233,7 @@ async function main() {
         scriptSrc: ["'self'", 'https://unpkg.com'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'http://localhost:3000', 'http://localhost:3002', 'https://*.supabase.co'],
+        connectSrc: ["'self'", 'https://*.supabase.co', process.env.APP_URL || ''],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],

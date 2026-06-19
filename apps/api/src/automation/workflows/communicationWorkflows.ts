@@ -44,6 +44,7 @@ export async function handleOrderConfirmation(job: Job) {
 
 export async function handleOutForDelivery(job: Job) {
   const { orderId } = job.data;
+  const appUrl = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   if (!order?.customerId) return;
 
@@ -51,7 +52,7 @@ export async function handleOutForDelivery(job: Job) {
   if (!customer || customer.marketingOptOut) return;
 
   if (customer.phone) {
-    await sendSMS(customer.phone, `Your order #${orderId} is out for delivery! Track live: https://kitchen.app/track/${orderId}`);
+    await sendSMS(customer.phone, `Your order #${orderId} is out for delivery! Track live: ${appUrl}/track/${orderId}`);
   }
   if (customer.email) {
     await sendOutForDelivery(customer.email, orderId);
@@ -60,6 +61,7 @@ export async function handleOutForDelivery(job: Job) {
 
 export async function handleFeedbackRequest(job: Job) {
   const { orderId } = job.data;
+  const appUrl = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
   const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
   if (!order?.customerId) return;
 
@@ -67,7 +69,7 @@ export async function handleFeedbackRequest(job: Job) {
   if (!customer || customer.marketingOptOut) return;
 
   if (customer.phone) {
-    await sendSMS(customer.phone, `How was your meal? Rate your experience: https://kitchen.app/feedback/${orderId}`);
+    await sendSMS(customer.phone, `How was your meal? Rate your experience: ${appUrl}/track/${orderId}`);
   }
   if (customer.email) {
     await sendFeedbackRequest(customer.email, orderId);
@@ -76,11 +78,12 @@ export async function handleFeedbackRequest(job: Job) {
 
 export async function handleAbandonedCart(job: Job) {
   const { customerId, cartItems } = job.data;
+  const appUrl = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
   const [customer] = await db.select().from(customers).where(eq(customers.id, customerId as number)).limit(1);
   if (!customer || customer.marketingOptOut) return;
 
   if (customer.phone) {
-    await sendSMS(customer.phone, `You left items in your cart! Complete your order and get 10% off: https://kitchen.app/cart`);
+    await sendSMS(customer.phone, `You left items in your cart! Complete your order and get 10% off: ${appUrl}/cart`);
   }
   if (customer.email) {
     const summary = Array.isArray(cartItems) ? cartItems.map((i: any) => i.name || i.dishId).join(', ') : 'Your items';

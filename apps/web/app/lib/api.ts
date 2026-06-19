@@ -1,6 +1,6 @@
 // Use Next.js proxy (see next.config.js rewrites) in browser, direct URL for SSR
 const API_BASE = typeof window === 'undefined'
-  ? (process.env.INTERNAL_API_URL || 'http://localhost:3001')
+  ? (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
   : '';
 
 import {

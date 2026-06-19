@@ -1,4 +1,4 @@
-import { subscriberRedis } from '../utils/redis.js';
+import { createFreshSubscriber } from '../utils/redis.js';
 import { supabaseAdmin } from '../lib/supabase.js';
 import { buildEventChannel } from '../utils/eventBus.js';
 import { CHANNELS } from '../realtime/channels.js';
@@ -44,8 +44,9 @@ export function startSupabaseBridge() {
       }
       bridgeLogger.info('[Supabase Bridge] Connected — broadcasting Redis events → Supabase Realtime');
 
-      // Use a SINGLE Redis subscriber for all kitchen events (avoids N duplicate connections)
-      const singleSub = subscriberRedis.duplicate();
+      // Use a fresh subscriber connection (avoids "Connection in subscriber mode" errors
+      // that occur when duplicating an already-subscribed ioredis client)
+      const singleSub = createFreshSubscriber('supabase-bridge');
       const redisEvents = Object.keys(eventToBroadcast);
 
       try {

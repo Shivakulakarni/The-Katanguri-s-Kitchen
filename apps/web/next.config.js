@@ -15,7 +15,6 @@ const nextConfig = {
     remotePatterns: [
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'images.pexels.com' },
-      { protocol: 'http', hostname: 'localhost', port: '3001' },
     ],
   },
   async rewrites() {

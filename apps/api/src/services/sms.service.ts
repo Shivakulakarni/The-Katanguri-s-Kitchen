@@ -58,11 +58,12 @@ export async function sendSMS(
 }
 
 export async function sendOrderSMS(phone: string, template: 'confirmation' | 'out_for_delivery' | 'feedback' | 'abandoned_cart', data: Record<string, any>): Promise<SmsResult> {
+  const appUrl = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
   const templates: Record<string, (d: Record<string, any>) => string> = {
     confirmation: (d) => `Order #${d.orderId} confirmed! Your food is being prepared. ETA: 30 min — The Katanguri's Kitchen`,
-    out_for_delivery: (d) => `Your order #${d.orderId} is out for delivery! Track live: https://kitchen.app/track/${d.orderId}`,
-    feedback: (d) => `How was your meal? Rate your experience: https://kitchen.app/feedback/${d.orderId}`,
-    abandoned_cart: (_d) => `You left items in your cart! Complete your order and get 10% off: https://kitchen.app/cart`,
+    out_for_delivery: (d) => `Your order #${d.orderId} is out for delivery! Track live: ${appUrl}/track/${d.orderId}`,
+    feedback: (d) => `How was your meal? Rate your experience: ${appUrl}/track/${d.orderId}`,
+    abandoned_cart: (_d) => `You left items in your cart! Complete your order and get 10% off: ${appUrl}/cart`,
   };
 
   const message = templates[template]?.(data);

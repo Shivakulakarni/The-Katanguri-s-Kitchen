@@ -30,7 +30,7 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com",
               "style-src 'self' 'unsafe-inline' https://unpkg.com",
-              "img-src 'self' data: blob: https://*.supabase.co http://localhost:3001 https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com",
+              "img-src 'self' data: blob: https://*.supabase.co https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com",
               "font-src 'self'",
               `connect-src 'self' ${API_URL} https://*.supabase.co wss://*.supabase.co`,
               "object-src 'none'",
