@@ -33,34 +33,12 @@ services:
         value: "https://the-katanguris-kitchen.vercel.app,https://the-katanguris-kitchen-admin.vercel.app"
       - key: APP_URL
         value: "https://the-katanguris-kitchen.vercel.app"
-      - key: SUPABASE_URL
-        sync: false
-      - key: SUPABASE_ANON_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: SUPABASE_JWT_SECRET
-        sync: false
-      - key: SENDGRID_API_KEY
-        sync: false
       - key: SENDGRID_FROM_EMAIL
         value: "orders@thekatanguriskitchen.com"
       - key: ALERT_EMAIL_TO
         value: "admin@thekatanguriskitchen.com"
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
       - key: TWILIO_PHONE_NUMBER
         value: "+919676164725"
-      - key: GEMINI_API_KEY
-        sync: false
-      - key: GROQ_API_KEY
-        sync: false
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
       - key: ENABLE_DEV_BYPASS
         value: "false"
       - key: LOG_LEVEL
