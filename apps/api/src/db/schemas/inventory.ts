@@ -1,6 +1,6 @@
 import { pgTable, text, decimal, integer, timestamp, index, check } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { dishes } from './menu';
+import { dishes } from './menu.js';
 
 export const ingredients = pgTable('ingredients', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),

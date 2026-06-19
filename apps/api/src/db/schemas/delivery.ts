@@ -1,6 +1,6 @@
 import { pgTable, text, decimal, integer, boolean, timestamp, jsonb, index } from 'drizzle-orm/pg-core';
-import { orders } from './order';
-import { customers } from './customer';
+import { orders } from './order.js';
+import { customers } from './customer.js';
 
 export const deliveryZones = pgTable('delivery_zones', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),

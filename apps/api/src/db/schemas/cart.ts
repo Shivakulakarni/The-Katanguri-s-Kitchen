@@ -1,6 +1,6 @@
 import { pgTable, integer, text, timestamp, index, check } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { customers } from './customer';
+import { customers } from './customer.js';
 
 export const cartItems = pgTable('cart_items', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),

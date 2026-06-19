@@ -1,5 +1,5 @@
 import { pgTable, integer, text, timestamp } from 'drizzle-orm/pg-core';
-import { feedbacks } from './feedback';
+import { feedbacks } from './feedback.js';
 
 export const feedbackAnalysis = pgTable('feedback_analysis', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),

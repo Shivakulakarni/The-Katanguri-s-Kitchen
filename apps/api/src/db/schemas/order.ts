@@ -1,6 +1,6 @@
 import { pgTable, integer, text, decimal, timestamp, jsonb, index, pgEnum, check } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { customers, customerAddresses } from './customer';
+import { customers, customerAddresses } from './customer.js';
 
 export const orderStatusEnum = pgEnum('order_status', ['PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'DISPATCHED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'REJECTED']);
 

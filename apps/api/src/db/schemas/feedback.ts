@@ -1,6 +1,6 @@
 import { pgTable, integer, text, timestamp, boolean, pgEnum, doublePrecision } from 'drizzle-orm/pg-core';
-import { orders } from './order';
-import { customers } from './customer';
+import { orders } from './order.js';
+import { customers } from './customer.js';
 
 export const feedbackRatingEnum = pgEnum('feedback_rating', ['1', '2', '3', '4', '5']);
 

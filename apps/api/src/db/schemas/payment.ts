@@ -1,6 +1,6 @@
 import { pgTable, integer, text, decimal, timestamp, index, pgEnum, check } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
-import { orders } from './order';
+import { orders } from './order.js';
 
 export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'succeeded', 'failed', 'refunded']);
 

@@ -1,5 +1,5 @@
 import { pgTable, integer, text, decimal, timestamp, boolean, index, pgEnum } from 'drizzle-orm/pg-core';
-import { orders } from './order';
+import { orders } from './order.js';
 
 export const riderStatusEnum = pgEnum('rider_status', ['offline', 'online', 'delivering', 'busy']);
 
