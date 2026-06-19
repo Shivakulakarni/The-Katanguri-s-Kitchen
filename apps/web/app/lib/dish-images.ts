@@ -118,39 +118,54 @@ export function getDishImage(
   dbImageUrl?: string | null,
   categoryName?: string,
 ): string {
+  let resolvedUrl = FALLBACK_DISH_IMAGE;
+
   // 1. Prioritize real custom user-uploaded images (e.g. from Supabase storage)
   if (dbImageUrl && dbImageUrl.includes('supabase.co')) {
-    return dbImageUrl;
-  }
+    resolvedUrl = dbImageUrl;
+  } else {
+    // 2. Exact match in our unique dish images dictionary
+    const normalized = dishName ? dishName.trim() : '';
+    let found = false;
+    if (normalized && DISH_IMAGES[normalized]) {
+      resolvedUrl = DISH_IMAGES[normalized];
+      found = true;
+    }
 
-  // 2. Exact match in our unique dish images dictionary
-  const normalized = dishName ? dishName.trim() : '';
-  if (normalized && DISH_IMAGES[normalized]) {
-    return DISH_IMAGES[normalized];
-  }
+    // 3. Fallback substring match
+    if (!found && normalized) {
+      const lowercaseName = normalized.toLowerCase();
+      const matchedKey = Object.keys(DISH_IMAGES).find(key => {
+        const k = key.toLowerCase();
+        return lowercaseName.includes(k) || k.includes(lowercaseName);
+      });
+      if (matchedKey) {
+        resolvedUrl = DISH_IMAGES[matchedKey];
+        found = true;
+      }
+    }
 
-  // 3. Fallback substring match (in case of subtle name differences like sizing)
-  if (normalized) {
-    const lowercaseName = normalized.toLowerCase();
-    const matchedKey = Object.keys(DISH_IMAGES).find(key => {
-      const k = key.toLowerCase();
-      return lowercaseName.includes(k) || k.includes(lowercaseName);
-    });
-    if (matchedKey) {
-      return DISH_IMAGES[matchedKey];
+    // 4. Fall back to database image (if it's not a generic duplicated unsplash placeholder)
+    if (!found && dbImageUrl && !dbImageUrl.includes('photo-1563379091339') && !dbImageUrl.includes('photo-1565557623262')) {
+      resolvedUrl = dbImageUrl;
+      found = true;
+    }
+
+    // 5. Category-level fallback images
+    if (!found && categoryName && CATEGORY_IMAGES[categoryName]) {
+      resolvedUrl = CATEGORY_IMAGES[categoryName];
+      found = true;
+    }
+
+    if (!found) {
+      resolvedUrl = dbImageUrl || FALLBACK_DISH_IMAGE;
     }
   }
 
-  // 4. Fall back to database image (if it's not a generic duplicated unsplash placeholder)
-  if (dbImageUrl && !dbImageUrl.includes('photo-1563379091339') && !dbImageUrl.includes('photo-1565557623262')) {
-    return dbImageUrl;
+  // Rewrite external Unsplash and Pexels URLs through our image proxy
+  if (resolvedUrl && (resolvedUrl.startsWith('https://images.unsplash.com') || resolvedUrl.startsWith('https://images.pexels.com'))) {
+    return `/api/image-proxy?url=${encodeURIComponent(resolvedUrl)}`;
   }
 
-  // 5. Category-level fallback images
-  if (categoryName && CATEGORY_IMAGES[categoryName]) {
-    return CATEGORY_IMAGES[categoryName];
-  }
-
-  // 6. Final generic fallback
-  return dbImageUrl || FALLBACK_DISH_IMAGE;
+  return resolvedUrl;
 }
