@@ -1,26 +1,8 @@
 {
-  "installCommand": "npm install",
-  "images": {
-    "domains": ["images.unsplash.com", "images.pexels.com"],
-    "remotePatterns": [
-      { "protocol": "https", "hostname": "images.unsplash.com" },
-      { "protocol": "https", "hostname": "images.pexels.com" }
-    ]
-  },
-  "builds": [
-    {
-      "src": "apps/web/next.config.js",
-      "use": "@vercel/next"
-    },
-    {
-      "src": "apps/admin/next.config.js",
-      "use": "@vercel/next"
-    }
-  ],
   "routes": [
     {
       "src": "/admin(/.*)?",
-      "dest": "apps/admin$1"
+      "dest": "apps/admin/$1"
     },
     {
       "src": "/(.*)",
