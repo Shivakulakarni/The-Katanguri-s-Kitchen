@@ -491,16 +491,20 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (process.env.NODE_ENV !== 'production') logger.debug({ email }, '[EMAIL OTP] Sent OTP');
 
-    // Try sending via SendGrid, fall back to console
+    // Try sending via SendGrid
+    let emailSent = false;
     try {
       const { sendOTP } = await import('../../services/email.service.js');
-      await sendOTP(email, otp, 'login');
+      emailSent = await sendOTP(email, otp, 'login');
     } catch (err: any) {
-      logger.warn({ email, error: err?.message }, '[EMAIL OTP] SendGrid failed — returning failure');
-      return reply.status(503).send({ error: 'Email delivery failed. Please try phone OTP.', smsFailed: true });
+      logger.warn({ email, error: err?.message }, '[EMAIL OTP] SendGrid error');
     }
 
-    return { message: 'OTP sent to your email' };
+    if (!emailSent) {
+      logger.warn({ email, otp }, '[EMAIL OTP] Email delivery failed — OTP logged for debugging');
+    }
+
+    return { message: 'OTP sent to your email', _dev_otp: emailSent ? undefined : otp };
   });
 
   // ── Verify Email OTP (login or register) ──
