@@ -1,5 +1,5 @@
 import { createFreshSubscriber } from '../utils/redis.js';
-import { supabaseAdmin } from '../lib/supabase.js';
+import { supabaseAdmin } from '../utils/supabase.js';
 import { buildEventChannel } from '../utils/eventBus.js';
 import { CHANNELS } from '../realtime/channels.js';
 import { logger } from '../utils/logger.js';
