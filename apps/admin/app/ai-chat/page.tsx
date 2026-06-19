@@ -29,9 +29,12 @@ export default function AIChatPage() {
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasSentMessage = useRef(false);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (hasSentMessage.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages, chatLoading]);
 
   useEffect(() => {
@@ -58,6 +61,7 @@ export default function AIChatPage() {
     if (!text.trim()) return;
 
     if (!textToSend) setMessage('');
+    hasSentMessage.current = true;
     const newMessages = [...messages, { role: 'user' as const, content: text }];
     setMessages(newMessages);
     setChatLoading(true);
