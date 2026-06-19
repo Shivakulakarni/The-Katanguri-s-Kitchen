@@ -5,9 +5,9 @@ services:
     runtime: node
     plan: free
     buildCommand: |
-      cd apps/api
       npm install
-      npm run build
+      npm run build -w packages/shared
+      npm run build -w apps/api
     startCommand: cd apps/api && node dist/index.js
     healthCheckPath: /api/v1/health
     envVars:
@@ -66,9 +66,9 @@ services:
     runtime: node
     plan: free
     buildCommand: |
-      cd apps/web
       npm install
-      npm run build
+      npm run build -w packages/shared
+      npm run build -w apps/web
     startCommand: cd apps/web && node server.js
     healthCheckPath: /
     envVars:
@@ -93,9 +93,9 @@ services:
     runtime: node
     plan: free
     buildCommand: |
-      cd apps/admin
       npm install
-      npm run build
+      npm run build -w packages/shared
+      npm run build -w apps/admin
     startCommand: cd apps/admin && node server.js
     healthCheckPath: /admin
     envVars:
