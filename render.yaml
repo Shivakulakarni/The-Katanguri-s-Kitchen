@@ -11,6 +11,8 @@ services:
     startCommand: cd apps/api && node dist/index.js
     healthCheckPath: /api/v1/health
     envVars:
+      - key: NODE_VERSION
+        value: "22"
       - key: NODE_ENV
         value: production
       - key: PORT
