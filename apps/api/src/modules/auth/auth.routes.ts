@@ -380,7 +380,7 @@ export async function authRoutes(app: FastifyInstance) {
       logger.warn({ phone }, '[AUTH] SMS delivery failed');
       if (process.env.ENABLE_DEV_BYPASS === 'true') {
         return {
-          message: 'SMS delivery failed. Dev bypass active.',
+          error: 'SMS delivery failed. Dev bypass active.',
           smsFailed: true,
           otp: otp,
         };
@@ -512,7 +512,7 @@ export async function authRoutes(app: FastifyInstance) {
       logger.warn({ email, dev_otp: otp }, `[EMAIL OTP] Email delivery failed — OTP is ${otp}`);
       if (process.env.ENABLE_DEV_BYPASS === 'true') {
         return {
-          message: 'Email delivery failed. Dev bypass active.',
+          error: 'Email delivery failed. Dev bypass active.',
           emailFailed: true,
           otp: otp,
         };
