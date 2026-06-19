@@ -4,6 +4,9 @@ import { logger } from '../utils/logger.js';
 import { handleOrderPlaced, handleOrderConfirmed, handleOrderReady, handleOrderDelivered, handleOrderCancelled } from './workflows/orderWorkflows.js';
 import { handleOrderConfirmation, handleOutForDelivery, handleFeedbackRequest, handleAbandonedCart, handleReEngagement } from './workflows/communicationWorkflows.js';
 import { handleAssignRider } from './workflows/dispatchWorkflows.js';
+import { db } from '../db/connection.js';
+import { feedbackAnalysis } from '../db/schemas/ai.js';
+import { geminiSentimentAnalysis } from '../modules/ai/ai.service.js';
 
 // BullMQ requires maxRetriesPerRequest to be null — create a dedicated fresh connection
 const connection = createBullMQConnection();
@@ -74,6 +77,35 @@ export function setupWorkers() {
       case 'assign-rider': return handleAssignRider(job);
       default:
         workerLogger.warn({ jobName: job.name }, '[BullMQ] Unknown job type in dispatch queue');
+        return { skipped: true, reason: 'unknown_job_type' };
+    }
+  });
+
+  createWorker('ai', async (job: any) => {
+    switch (job.name) {
+      case 'sentiment-analysis': {
+        const { feedbackId, rating, comment } = job.data;
+        try {
+          const result = await geminiSentimentAnalysis(rating, comment);
+          if (result) {
+            await db.insert(feedbackAnalysis).values({
+              feedbackId,
+              sentiment: result.sentiment,
+              score: String(result.score),
+              themes: JSON.stringify(result.themes),
+              summary: result.summary,
+              suggestedAction: result.suggestedAction || null,
+            });
+            workerLogger.info({ feedbackId, sentiment: result.sentiment }, '[AI] Sentiment analysis completed');
+          }
+          return { success: true, feedbackId };
+        } catch (err: any) {
+          workerLogger.error({ err: err.message, feedbackId }, '[AI] Sentiment analysis failed');
+          throw err;
+        }
+      }
+      default:
+        workerLogger.warn({ jobName: job.name }, '[BullMQ] Unknown job type in ai queue');
         return { skipped: true, reason: 'unknown_job_type' };
     }
   });

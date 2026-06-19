@@ -195,6 +195,12 @@ export const createAddressSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+export const updateAddressSchema = createAddressSchema.partial();
+
+export const createFavoriteSchema = z.object({
+  dishId: z.number().int().positive(),
+});
+
 // ── Inventory ──
 export const createIngredientSchema = z.object({
   name: z.string().min(1).max(200),

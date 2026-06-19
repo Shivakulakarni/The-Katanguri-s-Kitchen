@@ -1,4 +1,5 @@
-import { pgTable, integer, text, timestamp, boolean, decimal, index, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, integer, text, timestamp, boolean, decimal, index, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
+import { dishes } from './menu.js';
 
 export const customerRoleEnum = pgEnum('customer_role', ['customer', 'admin', 'rider']);
 
@@ -38,4 +39,15 @@ export const customerAddresses = pgTable('customer_addresses', {
 }, (table) => ({
   customerIdx: index('idx_customer_addresses_customer').on(table.customerId),
   cityIdx: index('idx_customer_addresses_city').on(table.city),
+}));
+
+export const customerFavorites = pgTable('customer_favorites', {
+  id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
+  customerId: integer('customer_id').notNull().references(() => customers.id),
+  dishId: integer('dish_id').notNull().references(() => dishes.id),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  customerDishIdx: index('idx_customer_favorites_customer_dish').on(table.customerId, table.dishId),
+  customerIdIdx: index('idx_customer_favorites_customer').on(table.customerId),
+  uniqueCustomerDish: uniqueIndex('idx_customer_favorites_unique').on(table.customerId, table.dishId),
 }));

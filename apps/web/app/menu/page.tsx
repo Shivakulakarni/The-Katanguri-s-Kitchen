@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useRealtimeEvent } from '@/lib/useRealtime';
 import { useCartStore } from '../lib/cart-store';
+import { useAuthStore } from '../lib/auth-store';
 import { getDishImage, FALLBACK_DISH_IMAGE } from '../lib/dish-images';
 import { Recommendations } from '../components/Recommendations';
 import { ErrorBoundary } from '../components/ErrorBoundary';
 import { toast } from '../lib/toast-store';
 import { trackEvent } from '../lib/analytics';
+import { api } from '../lib/api';
 
 function formatPrice(price: number) {
   return '₹' + price.toLocaleString('en-IN');
@@ -22,7 +24,6 @@ type Dish = {
 };
 type Category = { id: number; name: string; displayOrder: number; dishes: Dish[] };
 
-/** Debounce hook for search input — avoids filtering on every keystroke */
 function useDebouncedValue<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -34,6 +35,7 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 
 export default function MenuPage() {
   const { addItem } = useCartStore();
+  const { token } = useAuthStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,23 +44,23 @@ export default function MenuPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('popularity');
   const [recs, setRecs] = useState<number[]>([]);
+  const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const favToggleLock = useRef<Set<number>>(new Set());
 
   const debouncedSearch = useDebouncedValue(search, 200);
 
   useEffect(() => {
     const ac = new AbortController();
 
-    // Fetch AI recommendations
     fetch('/api/v1/ai/recommendations?limit=20', { signal: ac.signal })
       .then(async r => {
-        if (r.status === 401) return undefined; // Not logged in — silently skip
+        if (r.status === 401) return undefined;
         if (!r.ok) throw new Error('Failed to fetch recommendations');
         return r.json();
       })
       .then(data => { if (data && !ac.signal.aborted) setRecs((data?.recommendations || []).map((r: any) => r.dishId)) })
       .catch(err => { if (err.name !== 'AbortError') console.warn('Recommendations unavailable:', err.message) });
 
-    // Fetch Menu data
     setLoading(true);
     fetch('/api/v1/menu', { signal: ac.signal })
       .then(async r => {
@@ -85,6 +87,50 @@ export default function MenuPage() {
 
     return () => ac.abort();
   }, []);
+
+  // Load favorites when logged in
+  useEffect(() => {
+    if (!token) return;
+    api.get<{ favorites: { dishId: number }[] }>('/api/v1/customer/favorites', token)
+      .then(data => {
+        setFavorites(new Set((data.favorites || []).map(f => f.dishId)));
+      })
+      .catch(() => {});
+  }, [token]);
+
+  const toggleFavorite = useCallback(async (dishId: number) => {
+    if (!token) {
+      toast.info('Sign in to save favorites', 'Log in to keep track of your favorite dishes');
+      return;
+    }
+    if (favToggleLock.current.has(dishId)) return;
+    favToggleLock.current.add(dishId);
+
+    const isFav = favorites.has(dishId);
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (isFav) next.delete(dishId);
+      else next.add(dishId);
+      return next;
+    });
+
+    try {
+      if (isFav) {
+        await api.delete(`/api/v1/customer/favorites/${dishId}`, token);
+      } else {
+        await api.post('/api/v1/customer/favorites', { dishId }, token);
+      }
+    } catch {
+      setFavorites(prev => {
+        const next = new Set(prev);
+        if (isFav) next.add(dishId);
+        else next.delete(dishId);
+        return next;
+      });
+    } finally {
+      favToggleLock.current.delete(dishId);
+    }
+  }, [token, favorites]);
 
   useRealtimeEvent<any>('menu.updated', (payload) => {
     if (payload?.dishId) {
@@ -132,7 +178,6 @@ export default function MenuPage() {
     toast.success(`${dish.name} added to cart`, formatPrice(dish.price));
   }, [addItem]);
 
-  // Error state
   if (error) {
     return (
       <div className="container" style={{ paddingTop: 24 }}>
@@ -203,7 +248,6 @@ export default function MenuPage() {
               }
               if (nextCat) {
                 setActiveCat(nextCat);
-                // Roving tabindex: focus the newly active tab
                 requestAnimationFrame(() => {
                   const container = (e.target as HTMLElement).parentElement;
                   const nextBtn = container?.querySelector(`button[aria-pressed="true"]`) as HTMLElement;
@@ -225,7 +269,6 @@ export default function MenuPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 20 }}>
         {loading ? (
-          // Loading skeleton with proper aria
           <div role="status" aria-label="Loading menu" style={{ gridColumn: '1 / -1' }}>
             <span className="sr-only">Loading dishes...</span>
             {Array(6).fill(null).map((_, i) => (
@@ -258,8 +301,25 @@ export default function MenuPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(i * 0.05, 0.5), duration: 0.3 }}
-              style={{ display: 'flex' }}
+              style={{ display: 'flex', position: 'relative' }}
             >
+              {/* Favorite Heart Button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleFavorite(dish.id); }}
+                aria-label={favorites.has(dish.id) ? `Remove ${dish.name} from favorites` : `Add ${dish.name} to favorites`}
+                style={{
+                  position: 'absolute', top: 8, right: 8, zIndex: 10,
+                  width: 36, height: 36, borderRadius: '50%',
+                  border: 'none', cursor: 'pointer',
+                  background: favorites.has(dish.id) ? 'rgba(226, 55, 68, 0.15)' : 'rgba(255, 255, 255, 0.9)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 16, transition: 'all 0.2s',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                }}
+              >
+                {favorites.has(dish.id) ? '❤️' : '🤍'}
+              </button>
+
               <div style={{
                 width: 120, height: 140, minWidth: 120,
                 position: 'relative', overflow: 'hidden'
@@ -305,7 +365,6 @@ export default function MenuPage() {
           ))
         )}
       </div>
-      {/* AI Recommendations */}
       <ErrorBoundary fallback={null}><Recommendations /></ErrorBoundary>
     </div>
   );

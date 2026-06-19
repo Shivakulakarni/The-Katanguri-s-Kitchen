@@ -109,6 +109,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div style={{ display: 'flex', gap: 8 }}>
               {[
                 { label: 'Menu',      href: '/menu' },
+                { label: 'Meal Planner', href: '/meal-planner' },
                 { label: 'Cart',      href: '/cart' },
                 { label: 'My Orders', href: '/orders' },
                 { label: 'Track',     href: '/track' },

@@ -48,3 +48,34 @@ export interface AiInsight {
   actionable: boolean;
   suggestion?: string;
 }
+
+export interface MealPlan {
+  mealType: string;
+  totalPrice: number;
+  dishes: { id: number; name: string; price: number; reason: string; isVeg?: boolean }[];
+  pairingNote: string;
+  chefTip: string;
+}
+
+export interface FoodStory {
+  dishId: number;
+  dishName: string;
+  story: string;
+}
+
+export interface CrossSellSuggestion {
+  dishId: number;
+  dishName: string;
+  price: number;
+  overlapScore: number;
+  reason: string;
+}
+
+export interface ProactiveAlert {
+  type: 'inventory_depletion' | 'rush_prediction' | 'slow_day' | 'popular_dish_risk';
+  title: string;
+  message: string;
+  severity: 'info' | 'warning' | 'critical';
+  estimatedTime?: string;
+  suggestedAction: string;
+}

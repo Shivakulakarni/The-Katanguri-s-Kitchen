@@ -2,12 +2,14 @@ import { FastifyInstance } from 'fastify';
 import { db } from '../../db/connection.js';
 import { orders, orderItems } from '../../db/schemas/order.js';
 import { feedbacks } from '../../db/schemas/feedback.js';
+import { feedbackAnalysis } from '../../db/schemas/ai.js';
 import { dishes, categories } from '../../db/schemas/menu.js';
 import { ingredients } from '../../db/schemas/inventory.js';
+import { customerAddresses, customerFavorites } from '../../db/schemas/customer.js';
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
 import * as jose from 'jose';
 import { eq, desc, sql, count, gte, and, inArray } from 'drizzle-orm';
-import { groqPromoSuggestions, hasGroqKey, hasGeminiKey, chatCustomer, chatAdminInsights } from './ai.service.js';
+import { groqPromoSuggestions, hasGroqKey, hasGeminiKey, chatCustomer, chatAdminInsights, enhanceRecommendations, generateMealPlan, generateFoodStory, chatCustomerStream } from './ai.service.js';
 import type { AiInsight } from './types.js';
 import { redis } from '../../utils/redis.js';
 import { logger } from '../../utils/logger.js';
@@ -418,6 +420,43 @@ export async function aiRoutes(app: FastifyInstance) {
 
       const recommendations = await getRecommendations(customerId, limit);
 
+      // Optional LLM enhancement for authenticated users with order history
+      if (customerId && hasGroqKey() && recommendations.length > 0) {
+        try {
+          const cacheKeyLlm = `recs:llm:${customerId}`;
+          const cachedLlm = await redis.get(cacheKeyLlm);
+          if (cachedLlm) {
+            return { recommendations: JSON.parse(cachedLlm) };
+          }
+
+          const customerOrderDesc = recommendations.slice(0, 5).map(r => `${r.dishName}`).join(', ');
+          const llmResult = await enhanceRecommendations(
+            recommendations.slice(0, 10).map(r => ({
+              dishId: r.dishId,
+              dishName: r.dishName,
+              reason: r.reason,
+              score: r.score,
+            })),
+            customerOrderDesc,
+          );
+
+          if (llmResult && llmResult.length > 0) {
+            const llmRecs = llmResult.map(lr => {
+              const local = recommendations.find(r => r.dishId === lr.dishId);
+              return {
+                ...(local || { dishId: lr.dishId, dishName: '', price: 0, imageUrl: null, isVeg: true, categoryName: '', score: 0 }),
+                reason: lr.reason,
+                score: (local?.score || 0) + 0.5,
+              };
+            });
+            await redis.setex(cacheKeyLlm, 1800, JSON.stringify(llmRecs));
+            return { recommendations: llmRecs };
+          }
+        } catch {
+          // LLM enhancement failed — fall back to local results
+        }
+      }
+
       return { recommendations };
     } catch (err) {
       logger.error({ err }, '[AI] Recommendations failed');
@@ -450,8 +489,27 @@ export async function aiRoutes(app: FastifyInstance) {
           sentiment: sentiment.label,
           sentimentScore: sentiment.score,
           sentimentKeywords: sentiment.keywords,
+          suggestedAction: null as string | null,
+          themes: [] as string[],
         };
       });
+
+      // Enrich with LLM analysis from feedback_analysis table
+      const feedbackIds = analyzed.map(a => a.id);
+      if (feedbackIds.length > 0) {
+        const llmAnalyses = await db.select().from(feedbackAnalysis)
+          .where(inArray(feedbackAnalysis.feedbackId, feedbackIds));
+        const llmMap = new Map(llmAnalyses.map(la => [la.feedbackId, la]));
+        for (const a of analyzed) {
+          const llm = llmMap.get(a.id);
+          if (llm) {
+            a.sentiment = llm.sentiment;
+            a.sentimentScore = parseFloat(llm.score);
+            a.themes = (() => { try { return JSON.parse(llm.themes); } catch { return []; } })();
+            a.suggestedAction = llm.suggestedAction;
+          }
+        }
+      }
 
       const total = analyzed.length;
       const positive = analyzed.filter(a => a.sentiment === 'positive').length;
@@ -465,7 +523,9 @@ export async function aiRoutes(app: FastifyInstance) {
       const negativeComments = analyzed.filter(a => a.sentiment === 'negative');
       const themeCounts: Record<string, number> = {};
       for (const n of negativeComments) {
-        for (const kw of n.sentimentKeywords) {
+        // Use LLM themes if available, fall back to keywords
+        const themes = n.themes.length > 0 ? n.themes : n.sentimentKeywords;
+        for (const kw of themes) {
           themeCounts[kw] = (themeCounts[kw] || 0) + 1;
         }
       }
@@ -753,6 +813,7 @@ export async function aiRoutes(app: FastifyInstance) {
         .join('\n');
 
       let orderHistoryDescription = 'No past or active orders found for this session.';
+      let dietaryProfile = 'No dietary data available';
       if (customerId) {
         const customerOrders = await db.select({
           id: orders.id,
@@ -769,12 +830,139 @@ export async function aiRoutes(app: FastifyInstance) {
             .map(o => `Order #${o.id} | Status: ${o.status} | Total: ₹${o.totalAmount} | Created: ${o.createdAt}`)
             .join('\n');
         }
+
+        // Build dietary profile from order history
+        const customerOrderItems = await db.select({
+          dishName: dishes.name,
+          isVeg: dishes.isVeg,
+        }).from(orderItems)
+          .innerJoin(dishes, eq(orderItems.dishId, dishes.id))
+          .innerJoin(orders, eq(orderItems.orderId, orders.id))
+          .where(eq(orders.customerId, customerId))
+          .limit(20);
+
+        const vegCount = customerOrderItems.filter(i => i.isVeg).length;
+        const nonVegCount = customerOrderItems.filter(i => !i.isVeg).length;
+        const totalItems = customerOrderItems.length;
+        dietaryProfile = 'No dietary data available';
+        if (totalItems > 0) {
+          if (nonVegCount === 0) dietaryProfile = 'Strictly vegetarian';
+          else if (vegCount === 0) dietaryProfile = 'Strictly non-vegetarian';
+          else dietaryProfile = `Mixed diet (${vegCount} veg, ${nonVegCount} non-veg orders)`;
+        }
+
+        // Fetch customer favorites for context
+        const customerFavs = await db.select({ dishName: dishes.name })
+          .from(customerFavorites)
+          .innerJoin(dishes, eq(customerFavorites.dishId, dishes.id))
+          .where(eq(customerFavorites.customerId, customerId))
+          .limit(10);
+
+        if (customerFavs.length > 0) {
+          dietaryProfile += `. Favorite dishes: ${customerFavs.map(f => f.dishName).join(', ')}`;
+        }
+
+        // Fetch customer addresses for delivery context
+        const customerAddrs = await db.select({ city: customerAddresses.city, label: customerAddresses.label })
+          .from(customerAddresses)
+          .where(eq(customerAddresses.customerId, customerId))
+          .limit(3);
+
+        if (customerAddrs.length > 0) {
+          const cities = [...new Set(customerAddrs.map(a => a.city))];
+          orderHistoryDescription += `\nDelivery areas: ${cities.join(', ')}`;
+        }
       }
 
-      const responseMessage = await chatCustomer(message, history, menuDescription, orderHistoryDescription);
+      const responseMessage = await chatCustomer(message, history, menuDescription, orderHistoryDescription, dietaryProfile);
       return { response: responseMessage };
     } catch {
       return reply.status(500).send({ error: 'Customer chat request failed' });
+    }
+  });
+
+  // ── POST /api/v1/ai/chat/customer/stream (SSE) ──
+  app.post('/api/v1/ai/chat/customer/stream', async (request, reply) => {
+    try {
+      const user = request.user;
+      const customerId = user?.customerId || null;
+      if (customerId && !(await checkAiRateLimit(customerId, 10))) {
+        return reply.status(429).send({ error: 'Too many requests. Limit: 10 per minute.' });
+      }
+
+      const { message, history = [] } = request.body as { message: string; history?: { role: 'user' | 'assistant'; content: string }[] };
+      if (!message) return reply.status(400).send({ error: 'Message is required' });
+      if (message.length > 2000) return reply.status(400).send({ error: 'Message too long (max 2000 characters)' });
+
+      const allDishes = await db.select({
+        id: dishes.id, name: dishes.name, price: dishes.price,
+        isVeg: dishes.isVeg, isAvailable: dishes.isAvailable,
+      }).from(dishes).where(eq(dishes.isAvailable, true));
+
+      const menuDescription = allDishes
+        .map(d => `- ${d.name} (${d.isVeg ? 'Veg' : 'Non-Veg'}): ₹${d.price}`)
+        .join('\n');
+
+      let orderHistoryDescription = 'No past or active orders found.';
+      let dietaryProfile = 'No dietary data available';
+      if (customerId) {
+        const customerOrders = await db.select({
+          id: orders.id, status: orders.status, totalAmount: orders.totalAmount, createdAt: orders.createdAt,
+        }).from(orders).where(eq(orders.customerId, customerId)).orderBy(desc(orders.createdAt)).limit(5);
+
+        if (customerOrders.length > 0) {
+          orderHistoryDescription = customerOrders
+            .map(o => `Order #${o.id} | Status: ${o.status} | Total: ₹${o.totalAmount}`)
+            .join('\n');
+        }
+
+        const customerOrderItems = await db.select({ dishName: dishes.name, isVeg: dishes.isVeg })
+          .from(orderItems).innerJoin(dishes, eq(orderItems.dishId, dishes.id))
+          .innerJoin(orders, eq(orderItems.orderId, orders.id))
+          .where(eq(orders.customerId, customerId)).limit(20);
+
+        const vegCount = customerOrderItems.filter(i => i.isVeg).length;
+        const nonVegCount = customerOrderItems.filter(i => !i.isVeg).length;
+        if (customerOrderItems.length > 0) {
+          if (nonVegCount === 0) dietaryProfile = 'Strictly vegetarian';
+          else if (vegCount === 0) dietaryProfile = 'Strictly non-vegetarian';
+          else dietaryProfile = `Mixed diet (${vegCount} veg, ${nonVegCount} non-veg)`;
+        }
+      }
+
+      // Set SSE headers
+      reply.raw.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'X-Accel-Buffering': 'no',
+      });
+
+      let fullResponse = '';
+
+      const result = await chatCustomerStream(
+        message, history, menuDescription, orderHistoryDescription, dietaryProfile,
+        (chunk) => {
+          fullResponse += chunk;
+          reply.raw.write(`data: ${JSON.stringify({ type: 'chunk', content: chunk })}\n\n`);
+        },
+      );
+
+      if (result === null && !fullResponse) {
+        // Streaming failed — send fallback
+        const fallback = await chatCustomer(message, history, menuDescription, orderHistoryDescription, dietaryProfile);
+        reply.raw.write(`data: ${JSON.stringify({ type: 'chunk', content: fallback })}\n\n`);
+        fullResponse = fallback || '';
+      }
+
+      reply.raw.write(`data: ${JSON.stringify({ type: 'done', fullResponse })}\n\n`);
+      reply.raw.end();
+    } catch (err: any) {
+      logger.error({ err: err?.message }, '[AI] Customer chat stream failed');
+      try {
+        reply.raw.write(`data: ${JSON.stringify({ type: 'error', message: 'Chat streaming failed' })}\n\n`);
+        reply.raw.end();
+      } catch { /* connection may already be closed */ }
     }
   });
 
@@ -817,6 +1005,255 @@ export async function aiRoutes(app: FastifyInstance) {
     } catch (err: any) {
       logger.error({ err: err?.message, stack: err?.stack }, '[AI] Admin chat insights failed');
       return reply.status(500).send({ error: 'Admin insights chat request failed' });
+    }
+  });
+
+  // ── POST /api/v1/ai/meal-plan ──
+  app.post('/api/v1/ai/meal-plan', async (request, reply) => {
+    try {
+      const user = request.user;
+      const customerId = user?.customerId || null;
+      if (customerId && !(await checkAiRateLimit(customerId, 5))) {
+        return reply.status(429).send({ error: 'Too many requests. Limit: 5 per minute.' });
+      }
+
+      const { mealType = 'lunch', budget = 300, dietary = 'No restrictions' } = request.body as {
+        mealType?: string; budget?: number; dietary?: string;
+      };
+
+      if (!['breakfast', 'lunch', 'dinner', 'snack'].includes(mealType)) {
+        return reply.status(400).send({ error: 'mealType must be breakfast, lunch, dinner, or snack' });
+      }
+
+      const allDishes = await db.select({
+        id: dishes.id, name: dishes.name, price: dishes.price,
+        isVeg: dishes.isVeg, category: categories.name,
+      }).from(dishes)
+        .innerJoin(categories, eq(dishes.categoryId, categories.id))
+        .where(eq(dishes.isAvailable, true));
+
+      const menuDescription = allDishes
+        .map(d => `- ${d.name} (₹${d.price}, ${d.isVeg ? 'Veg' : 'Non-Veg'}, ${d.category})`)
+        .join('\n');
+
+      let favorites = '';
+      if (customerId) {
+        const customerFavs = await db.select({ dishName: dishes.name })
+          .from(customerFavorites)
+          .innerJoin(dishes, eq(customerFavorites.dishId, dishes.id))
+          .where(eq(customerFavorites.customerId, customerId))
+          .limit(5);
+        if (customerFavs.length > 0) {
+          favorites = `Previously enjoyed: ${customerFavs.map(f => f.dishName).join(', ')}`;
+        }
+      }
+
+      const mealPlan = await generateMealPlan(mealType, menuDescription, budget, dietary, favorites);
+      if (!mealPlan) {
+        return reply.status(500).send({ error: 'Failed to generate meal plan' });
+      }
+
+      // Enrich dishes with real database IDs and isVeg flag
+      const dishMap = new Map(allDishes.map(d => [d.name.toLowerCase().trim(), d]));
+      mealPlan.dishes = mealPlan.dishes.map(d => {
+        const realDish = dishMap.get(d.name.toLowerCase().trim());
+        return {
+          ...d,
+          id: realDish?.id || d.id,
+          isVeg: realDish?.isVeg ?? d.isVeg ?? true,
+        };
+      });
+
+      return { mealPlan };
+    } catch (err: any) {
+      logger.error({ err: err?.message }, '[AI] Meal plan failed');
+      return reply.status(500).send({ error: 'Meal plan generation failed' });
+    }
+  });
+
+  // ── GET /api/v1/ai/food-story/:dishId ──
+  app.get('/api/v1/ai/food-story/:dishId', async (request, reply) => {
+    try {
+      const { dishId: dishIdStr } = request.params as { dishId: string };
+      const dishId = parseInt(dishIdStr);
+      if (isNaN(dishId)) return reply.status(400).send({ error: 'Invalid dish ID' });
+
+      // Check cache
+      const cacheKey = `foodstory:${dishId}`;
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+
+      const [dish] = await db.select({
+        id: dishes.id, name: dishes.name, price: dishes.price,
+        description: dishes.description, isVeg: dishes.isVeg,
+        category: categories.name,
+      }).from(dishes)
+        .innerJoin(categories, eq(dishes.categoryId, categories.id))
+        .where(eq(dishes.id, dishId));
+
+      if (!dish) return reply.status(404).send({ error: 'Dish not found' });
+
+      const story = await generateFoodStory(
+        dish.name, dish.category, parseFloat(dish.price.toString()),
+        dish.description || '', dish.isVeg ?? true,
+      );
+
+      if (!story) return reply.status(500).send({ error: 'Failed to generate food story' });
+
+      const result = { dishId: dish.id, dishName: dish.name, story };
+      await redis.setex(cacheKey, 86400, JSON.stringify(result)); // Cache 24 hours
+      return result;
+    } catch (err: any) {
+      logger.error({ err: err?.message }, '[AI] Food story failed');
+      return reply.status(500).send({ error: 'Food story generation failed' });
+    }
+  });
+
+  // ── GET /api/v1/ai/cross-sell/:dishId ──
+  app.get('/api/v1/ai/cross-sell/:dishId', async (request, reply) => {
+    try {
+      const { dishId: dishIdStr } = request.params as { dishId: string };
+      const dishId = parseInt(dishIdStr);
+      if (isNaN(dishId)) return reply.status(400).send({ error: 'Invalid dish ID' });
+
+      const cacheKey = `crosssell:${dishId}`;
+      const cached = await redis.get(cacheKey);
+      if (cached) return JSON.parse(cached);
+
+      // Find dishes that are frequently ordered together
+      const coOrders = await db.select({ orderId: orderItems.orderId })
+        .from(orderItems)
+        .where(eq(orderItems.dishId, dishId))
+        .limit(100);
+
+      const coOrderIds = coOrders.map(o => o.orderId);
+      if (coOrderIds.length === 0) return { suggestions: [] };
+
+      const pairedItems = await db.select({
+        dishId: orderItems.dishId,
+        dishName: dishes.name,
+        price: dishes.price,
+        orderCount: sql<number>`count(*)::int`,
+      }).from(orderItems)
+        .innerJoin(dishes, eq(orderItems.dishId, dishes.id))
+        .where(and(
+          inArray(orderItems.orderId, coOrderIds),
+          sql`${orderItems.dishId} != ${dishId}`,
+        ))
+        .groupBy(orderItems.dishId, dishes.name, dishes.price)
+        .orderBy(sql`count(*)::int DESC`)
+        .limit(3);
+
+      const suggestions = pairedItems.map(item => ({
+        dishId: item.dishId,
+        dishName: item.dishName,
+        price: parseFloat(item.price.toString()),
+        overlapScore: Math.round((item.orderCount / coOrderIds.length) * 100),
+        reason: `Ordered together in ${item.orderCount} orders`,
+      }));
+
+      const result = { dishId, suggestions };
+      await redis.setex(cacheKey, 3600, JSON.stringify(result));
+      return result;
+    } catch (err: any) {
+      logger.error({ err: err?.message }, '[AI] Cross-sell failed');
+      return reply.status(500).send({ error: 'Cross-sell analysis failed' });
+    }
+  });
+
+  // ── GET /api/v1/admin/ai/proactive-alerts ──
+  app.get('/api/v1/admin/ai/proactive-alerts', { preHandler: [authenticate, requireAdmin] }, async () => {
+    try {
+      const alerts: { type: string; title: string; message: string; severity: string; suggestedAction: string }[] = [];
+
+      // Check inventory depletion
+      const lowStock = await db.select({
+        name: ingredients.name,
+        currentStock: ingredients.currentStock,
+        parLevel: ingredients.parLevel,
+        unit: ingredients.unit,
+      }).from(ingredients)
+        .where(sql`${ingredients.currentStock}::numeric < ${ingredients.parLevel}::numeric`);
+
+      for (const item of lowStock) {
+        const current = parseFloat(item.currentStock?.toString() || '0');
+        const par = parseFloat(item.parLevel?.toString() || '1');
+        const ratio = current / Math.max(par, 1);
+        if (ratio < 0.3) {
+          alerts.push({
+            type: 'inventory_depletion',
+            title: `Critical: ${item.name} critically low`,
+            message: `Only ${current} ${item.unit} left (par level: ${par} ${item.unit}). Estimated to run out within 2 hours at current order rate.`,
+            severity: 'critical',
+            suggestedAction: `Urgently restock ${item.name}. Contact supplier immediately.`,
+          });
+        } else if (ratio < 0.6) {
+          alerts.push({
+            type: 'inventory_depletion',
+            title: `Warning: ${item.name} running low`,
+            message: `Current stock: ${current} ${item.unit} (par level: ${par} ${item.unit}). May need restocking before evening rush.`,
+            severity: 'warning',
+            suggestedAction: `Plan to restock ${item.name} before the lunch/dinner rush.`,
+          });
+        }
+      }
+
+      // Check peak hours (predict lunch rush)
+      const hour = new Date().getHours();
+      if (hour >= 10 && hour < 12) {
+        alerts.push({
+          type: 'rush_prediction',
+          title: 'Lunch rush starting soon',
+          message: 'Historical data shows order volume typically peaks between 12-2 PM. Consider pre-prepping popular items.',
+          severity: 'info',
+          suggestedAction: 'Pre-prep 5-10 portions of top 3 dishes to reduce wait times during rush.',
+        });
+      }
+      if (hour >= 17 && hour < 19) {
+        alerts.push({
+          type: 'rush_prediction',
+          title: 'Dinner rush starting soon',
+          message: 'Historical data shows dinner orders peak between 7-9 PM. Ensure adequate stock of popular items.',
+          severity: 'info',
+          suggestedAction: 'Verify stock levels for top 5 dinner dishes and prep ingredients.',
+        });
+      }
+
+      // Check for slow-moving dishes
+      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      const dishOrderCounts = await db.select({
+        dishId: orderItems.dishId,
+        totalQty: sql<number>`COALESCE(SUM(${orderItems.quantity}), 0)::int`,
+      }).from(orderItems)
+        .innerJoin(orders, eq(orderItems.orderId, orders.id))
+        .where(gte(orders.createdAt, sevenDaysAgo))
+        .groupBy(orderItems.dishId);
+
+      const avgPerDish = dishOrderCounts.length > 0
+        ? dishOrderCounts.reduce((s, d) => s + d.totalQty, 0) / dishOrderCounts.length
+        : 0;
+
+      if (avgPerDish > 0) {
+        const slowDishes = await db.select({ id: dishes.id, name: dishes.name })
+          .from(dishes).where(eq(dishes.isAvailable, true));
+        for (const dish of slowDishes) {
+          const count = dishOrderCounts.find(d => d.dishId === dish.id)?.totalQty || 0;
+          if (count === 0 && avgPerDish > 2) {
+            alerts.push({
+              type: 'slow_day',
+              title: `${dish.name} hasn't sold this week`,
+              message: `This dish usually averages ${Math.round(avgPerDish)} orders per week. Zero orders this week may indicate a problem.`,
+              severity: 'info',
+              suggestedAction: `Consider a promotional discount or bundling ${dish.name} with popular items.`,
+            });
+          }
+        }
+      }
+
+      return { alerts };
+    } catch (err: any) {
+      logger.error({ err: err?.message }, '[AI] Proactive alerts failed');
+      return { alerts: [] };
     }
   });
 }
