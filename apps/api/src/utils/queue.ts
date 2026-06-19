@@ -2,7 +2,8 @@ import { Queue, QueueEvents } from 'bullmq';
 import { redis } from './redis.js';
 import { logger } from './logger.js';
 
-const connection = redis as any;
+// BullMQ requires maxRetriesPerRequest to be null — use a dedicated connection
+const connection = (redis as any).duplicate({ maxRetriesPerRequest: null });
 
 const queueLogger = logger.child({ module: 'queue' });
 

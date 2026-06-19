@@ -693,10 +693,13 @@ export async function riderRoutes(app: FastifyInstance) {
     };
 
     // Subscribe to rider location updates via Redis pub/sub
-    const { pubSub } = await import('../../utils/redis.js');
+    // Use a duplicate of subscriberRedis — NOT pubSub — to avoid putting the
+    // shared pubSub connection into subscriber mode (which breaks eventBus.publish)
+    const { subscriberRedis } = await import('../../utils/redis.js');
+    const riderSub = subscriberRedis.duplicate();
     const locationChannel = `rider:location:updates:${riderId}`;
     try {
-      await pubSub.subscribe(locationChannel);
+      await riderSub.subscribe(locationChannel);
     } catch {
       // Subscribe failure is non-fatal
     }
@@ -717,7 +720,7 @@ export async function riderRoutes(app: FastifyInstance) {
         // Parse failure
       }
     };
-    pubSub.on('message', onMessage);
+    riderSub.on('message', onMessage);
 
     // Initial state
     await sendUpdate();
@@ -729,8 +732,9 @@ export async function riderRoutes(app: FastifyInstance) {
     request.raw.on('close', () => {
       clearInterval(interval);
       clearInterval(heartbeat);
-      try { pubSub.unsubscribe(locationChannel); } catch { /* ignore */ }
-      pubSub.off('message', onMessage);
+      try { riderSub.unsubscribe(locationChannel); } catch { /* ignore */ }
+      riderSub.off('message', onMessage);
+      riderSub.disconnect().catch(() => {});
     });
   });
 }

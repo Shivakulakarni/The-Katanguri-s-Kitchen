@@ -5,7 +5,8 @@ import { handleOrderPlaced, handleOrderConfirmed, handleOrderReady, handleOrderD
 import { handleOrderConfirmation, handleOutForDelivery, handleFeedbackRequest, handleAbandonedCart, handleReEngagement } from './workflows/communicationWorkflows.js';
 import { handleAssignRider } from './workflows/dispatchWorkflows.js';
 
-const connection = redis as any;
+// BullMQ requires maxRetriesPerRequest to be null — use a dedicated connection
+const connection = (redis as any).duplicate({ maxRetriesPerRequest: null });
 const workerLogger = logger.child({ module: 'workers' });
 
 let workersSupported: boolean | null = null;

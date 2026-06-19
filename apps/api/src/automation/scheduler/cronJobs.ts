@@ -18,7 +18,8 @@ import { join } from 'path';
 import { mkdirSync, statSync, writeFileSync } from 'fs';
 import { gzipSync } from 'zlib';
 
-const connection = redis as any;
+// BullMQ requires maxRetriesPerRequest to be null — use a dedicated connection
+const connection = (redis as any).duplicate({ maxRetriesPerRequest: null });
 let cronQueue: Queue | null = null;
 
 const execFileAsync = promisify(execFile);
