@@ -5,7 +5,6 @@ const API_CACHE = 'katanguri-api-v1';
 const STATIC_ASSETS = [
   '/',
   '/menu',
-  '/about',
   '/contact',
   '/manifest.json',
   '/favicon.png',

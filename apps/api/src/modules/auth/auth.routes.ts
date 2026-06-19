@@ -373,10 +373,9 @@ export async function authRoutes(app: FastifyInstance) {
     if (!smsResult.success) {
       logger.warn({ phone, error: smsResult.error }, '[AUTH] SMS delivery failed');
       return { 
-        message: 'OTP generated but SMS delivery failed', 
+        message: 'SMS delivery unavailable. Please use email OTP instead.', 
         smsFailed: true,
-        error: smsResult.error || 'SMS delivery failed. Please try email OTP.',
-        fallbackAvailable: true,
+        _dev_otp: otp,
       };
     }
 
