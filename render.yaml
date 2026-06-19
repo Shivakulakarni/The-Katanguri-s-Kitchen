@@ -27,8 +27,12 @@ services:
         generateValue: true
       - key: JWT_REFRESH_SECRET
         generateValue: true
+      - key: COOKIE_SECRET
+        generateValue: true
       - key: CORS_ORIGINS
-        sync: false
+        value: "https://the-katanguris-kitchen.vercel.app,https://the-katanguris-kitchen-admin.vercel.app"
+      - key: APP_URL
+        value: "https://the-katanguris-kitchen.vercel.app"
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY
@@ -37,82 +41,34 @@ services:
         sync: false
       - key: SUPABASE_JWT_SECRET
         sync: false
-      - key: APP_URL
-        sync: false
-      - key: STRIPE_SECRET_KEY
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
       - key: SENDGRID_API_KEY
         sync: false
+      - key: SENDGRID_FROM_EMAIL
+        value: "orders@thekatanguriskitchen.com"
+      - key: ALERT_EMAIL_TO
+        value: "admin@thekatanguriskitchen.com"
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
         sync: false
       - key: TWILIO_PHONE_NUMBER
+        value: "+919676164725"
+      - key: GEMINI_API_KEY
         sync: false
       - key: GROQ_API_KEY
         sync: false
-      - key: GEMINI_API_KEY
-        sync: false
+      - key: STRIPE_SECRET_KEY
+        value: "sk_test_CHANGE_ME"
+      - key: STRIPE_WEBHOOK_SECRET
+        value: "whsec_CHANGE_ME"
       - key: ENABLE_DEV_BYPASS
         value: "false"
       - key: LOG_LEVEL
         value: info
-
-  # ── Next.js Web App ──
-  - type: web
-    name: kitchen-web
-    runtime: node
-    plan: free
-    buildCommand: |
-      npm install
-      npm run build -w packages/shared
-      npm run build -w apps/web
-    startCommand: cd apps/web && node server.js
-    healthCheckPath: /
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: API_URL
-        fromService:
-          name: kitchen-api
-          property: host
-      - key: NEXT_PUBLIC_SUPABASE_URL
-        sync: false
-      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        sync: false
-      - key: NEXTAUTH_URL
-        sync: false
-      - key: NEXTAUTH_SECRET
-        generateValue: true
-
-  # ── Next.js Admin Dashboard ──
-  - type: web
-    name: kitchen-admin
-    runtime: node
-    plan: free
-    buildCommand: |
-      npm install
-      npm run build -w packages/shared
-      npm run build -w apps/admin
-    startCommand: cd apps/admin && node server.js
-    healthCheckPath: /admin
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: API_URL
-        fromService:
-          name: kitchen-api
-          property: host
-      - key: NEXT_PUBLIC_SUPABASE_URL
-        sync: false
-      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        sync: false
-      - key: NEXTAUTH_URL
-        sync: false
-      - key: NEXTAUTH_SECRET
-        generateValue: true
+      - key: KITCHEN_LAT
+        value: "17.9784"
+      - key: KITCHEN_LNG
+        value: "79.5941"
 
 # ── Databases ──
 databases:
