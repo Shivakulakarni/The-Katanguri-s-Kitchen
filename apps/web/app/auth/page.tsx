@@ -224,91 +224,158 @@ function AuthForm() {
 
   return (
     <div style={{
-      minHeight: 'calc(100vh - 64px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 24, background: 'var(--canvas)',
+      minHeight: 'calc(100vh - 64px)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px 24px',
+      background: 'var(--canvas)',
+      backgroundImage: 'radial-gradient(circle at 10% 20%, rgba(226, 55, 68, 0.04) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(255, 111, 97, 0.04) 0%, transparent 40%)',
+      position: 'relative',
+      overflow: 'hidden',
     }}>
-      <div className="card" style={{ width: '100%', maxWidth: 420, padding: 40, animation: 'scaleIn 0.2s ease', position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 16, right: 16 }}>
+      {/* Decorative blurred background elements for ambient culinary glow */}
+      <div style={{
+        position: 'absolute', top: '15%', left: '10%', width: 250, height: 250,
+        borderRadius: '50%', background: 'rgba(226,55,68,0.06)', filter: 'blur(60px)', pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'absolute', bottom: '15%', right: '10%', width: 300, height: 300,
+        borderRadius: '50%', background: 'rgba(255,111,97,0.06)', filter: 'blur(70px)', pointerEvents: 'none',
+      }} />
+
+      <div className="card" style={{
+        width: '100%',
+        maxWidth: 440,
+        padding: '48px 40px',
+        animation: 'scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        position: 'relative',
+        borderRadius: 24,
+        background: 'var(--canvas)',
+        boxShadow: '0 20px 50px -12px rgba(0, 0, 0, 0.08), 0 0 1px 1px var(--hairline)',
+        backdropFilter: 'blur(20px)',
+      }}>
+        <div style={{ position: 'absolute', top: 24, right: 24 }}>
           <ThemeToggle />
         </div>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-            <div style={{ width: 72, height: 72, borderRadius: '50%', overflow: 'hidden', border: '3px solid var(--primary)', boxShadow: '0 4px 20px rgba(255,71,87,0.25)' }}>
-              <Image src="/logo.avif" alt="The Katanguri's Kitchen" width={72} height={72} style={{ objectFit: 'cover' }} priority />
+        
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+            <div style={{
+              width: 80,
+              height: 80,
+              borderRadius: 22,
+              overflow: 'hidden',
+              border: '3px solid var(--primary)',
+              boxShadow: '0 8px 30px rgba(226,55,68,0.2)',
+              transition: 'all 0.3s ease',
+              transform: 'rotate(-4deg)',
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'rotate(0deg) scale(1.05)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'rotate(-4deg) scale(1)'}>
+              <Image src="/logo.avif" alt="The Katanguri's Kitchen" width={80} height={80} style={{ objectFit: 'cover' }} priority />
             </div>
           </div>
-          <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink-deep)', letterSpacing: '-0.5px', marginBottom: 8 }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink-deep)', letterSpacing: '-0.75px', marginBottom: 6 }}>
             The Katanguri's Kitchen
           </div>
-          <p style={{ color: 'var(--steel)', fontSize: 14 }}>
+          <p style={{ color: 'var(--steel)', fontSize: 14, fontWeight: 500 }}>
             {isLogin ? 'Sign in to continue ordering' : 'Create an account to get started'}
           </p>
         </div>
 
         {/* Method Toggle: Phone / Email */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 24, background: 'var(--surface-soft)', borderRadius: 'var(--rounded-lg)', padding: 4 }}>
+        <div style={{
+          display: 'flex', gap: 6, marginBottom: 28, background: 'var(--surface-soft)', borderRadius: 14, padding: 5,
+          border: '1px solid var(--hairline-soft)',
+        }}>
           <button type="button" onClick={() => { setMethod('phone'); resetForm(); }}
             style={{
-              flex: 1, padding: '10px 0', fontSize: 14, fontWeight: 600, border: 'none', borderRadius: 'calc(var(--rounded-lg) - 4px)',
-              background: isPhoneMode ? 'var(--surface)' : 'transparent', color: isPhoneMode ? 'var(--ink)' : 'var(--steel)',
-              cursor: 'pointer', boxShadow: isPhoneMode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.15s ease',
+              flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 10,
+              background: isPhoneMode ? 'var(--canvas)' : 'transparent',
+              color: isPhoneMode ? 'var(--primary)' : 'var(--steel)',
+              cursor: 'pointer',
+              boxShadow: isPhoneMode ? '0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.02)' : 'none',
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             }}>
-            Phone
+            Phone Number
           </button>
           <button type="button" onClick={() => { setMethod('email'); resetForm(); }}
             style={{
-              flex: 1, padding: '10px 0', fontSize: 14, fontWeight: 600, border: 'none', borderRadius: 'calc(var(--rounded-lg) - 4px)',
-              background: !isPhoneMode ? 'var(--surface)' : 'transparent', color: !isPhoneMode ? 'var(--ink)' : 'var(--steel)',
-              cursor: 'pointer', boxShadow: !isPhoneMode ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-              transition: 'all 0.15s ease',
+              flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 10,
+              background: !isPhoneMode ? 'var(--canvas)' : 'transparent',
+              color: !isPhoneMode ? 'var(--primary)' : 'var(--steel)',
+              cursor: 'pointer',
+              boxShadow: !isPhoneMode ? '0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.02)' : 'none',
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
             }}>
-            Email
+            Email Address
           </button>
         </div>
 
         {/* Name (signup only) */}
         {!isLogin && (
-          <div style={{ marginBottom: 16 }}>
-            <label htmlFor="name" style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>Full Name</label>
-            <input id="name" name="name" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)} style={{ width: '100%', height: 44 }} />
+          <div style={{ marginBottom: 18 }}>
+            <label htmlFor="name" style={{ fontSize: 12, fontWeight: 700, color: 'var(--charcoal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'block' }}>Full Name</label>
+            <input id="name" name="name" placeholder="John Doe" value={name} onChange={e => setName(e.target.value)} 
+              style={{
+                width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--hairline)',
+                padding: '0 16px', fontSize: 15, fontWeight: 500, transition: 'all 0.2s ease',
+              }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(226,55,68,0.08)'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.boxShadow = 'none'; }} />
           </div>
         )}
 
         {/* Phone Input */}
         {isPhoneMode && (
-          <div style={{ marginBottom: 20 }}>
-            <label htmlFor="phone" style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>Phone Number</label>
+          <div style={{ marginBottom: 24 }}>
+            <label htmlFor="phone" style={{ fontSize: 12, fontWeight: 700, color: 'var(--charcoal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'block' }}>Phone Number</label>
             <div style={{ display: 'flex', gap: 10 }}>
-              <div style={{ padding: '10px 12px', border: '1px solid var(--hairline)', borderRadius: 'var(--rounded-lg)', fontWeight: 700, fontSize: 14, background: 'var(--surface-soft)', color: 'var(--steel)', display: 'flex', alignItems: 'center', height: 44 }}>
+              <div style={{
+                padding: '0 16px', border: '1.5px solid var(--hairline)', borderRadius: 12, fontWeight: 700, fontSize: 15,
+                background: 'var(--surface-soft)', color: 'var(--ink-deep)', display: 'flex', alignItems: 'center', height: 48,
+              }}>
                 +91
               </div>
               <input id="phone" name="phone" type="tel" placeholder="98765 43210" value={phone}
                 onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 disabled={otpStatus === 'sent'}
-                style={{ flex: 1, height: 44, opacity: otpStatus === 'sent' ? 0.6 : 1 }} />
+                style={{
+                  flex: 1, height: 48, borderRadius: 12, border: '1.5px solid var(--hairline)',
+                  padding: '0 16px', fontSize: 15, fontWeight: 600, transition: 'all 0.2s ease',
+                  opacity: otpStatus === 'sent' ? 0.6 : 1,
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(226,55,68,0.08)'; }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.boxShadow = 'none'; }} />
             </div>
           </div>
         )}
 
         {/* Email Input */}
         {!isPhoneMode && (
-          <div style={{ marginBottom: 20 }}>
-            <label htmlFor="email" style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>Email Address</label>
-            <input id="email" name="email" placeholder="you@gmail.com" type="email" value={email}
+          <div style={{ marginBottom: 24 }}>
+            <label htmlFor="email" style={{ fontSize: 12, fontWeight: 700, color: 'var(--charcoal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'block' }}>Email Address</label>
+            <input id="email" name="email" placeholder="you@example.com" type="email" value={email}
               onChange={e => setEmail(e.target.value)}
               disabled={otpStatus === 'sent'}
-              style={{ width: '100%', height: 44, opacity: otpStatus === 'sent' ? 0.6 : 1 }} />
+              style={{
+                width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--hairline)',
+                padding: '0 16px', fontSize: 15, fontWeight: 600, transition: 'all 0.2s ease',
+                opacity: otpStatus === 'sent' ? 0.6 : 1,
+              }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(226,55,68,0.08)'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.boxShadow = 'none'; }} />
           </div>
         )}
 
         {/* OTP Input */}
         {(otpStatus === 'sent' || otpExpired) && (
-          <div style={{ marginBottom: 20, animation: 'fadeInUp 0.2s ease' }}>
-            <label htmlFor="otp-0" style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>
-              {otpExpired ? 'OTP Expired' : 'Enter OTP'}
+          <div style={{ marginBottom: 24, animation: 'fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+            <label htmlFor="otp-0" style={{ fontSize: 12, fontWeight: 700, color: otpExpired ? 'var(--critical)' : 'var(--charcoal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, display: 'block' }}>
+              {otpExpired ? 'OTP Expired' : 'Enter 6-Digit Code'}
             </label>
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
               {[0, 1, 2, 3, 4, 5].map(i => (
                 <input key={i} id={`otp-${i}`} name={`otp-${i}`} maxLength={1} value={otp[i] || ''} data-otp={i}
                   disabled={otpExpired}
@@ -321,35 +388,48 @@ function AuthForm() {
                       next?.focus();
                     }
                   }}
-                  onKeyDown={e => { if (e.key === 'Enter' && otp.length === 6 && !otpExpired) handleVerifyOtp(); }}
+                  onKeyDown={e => {
+                    if (e.key === 'Backspace' && !otp[i] && i > 0) {
+                      const prev = document.querySelector(`input[data-otp="${i - 1}"]`) as HTMLInputElement;
+                      prev?.focus();
+                    }
+                    if (e.key === 'Enter' && otp.length === 6 && !otpExpired) handleVerifyOtp();
+                  }}
                   style={{
-                    flex: 1, width: '100%', minWidth: 0, padding: 0, height: 56, textAlign: 'center', borderRadius: 'var(--rounded-lg)',
+                    flex: 1, width: '100%', minWidth: 0, padding: 0, height: 50, textAlign: 'center', borderRadius: 12,
                     border: `2px solid ${otpExpired ? 'var(--critical)' : otp[i] ? 'var(--primary)' : 'var(--hairline)'}`,
-                    fontSize: 24, fontWeight: 700, letterSpacing: '4px', opacity: otpExpired ? 0.5 : 1,
-                  }} />
+                    fontSize: 20, fontWeight: 700, color: 'var(--ink-deep)', opacity: otpExpired ? 0.5 : 1,
+                    transition: 'all 0.15s ease', background: 'var(--surface-soft)',
+                  }}
+                  onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.background = 'var(--canvas)'; }}
+                  onBlur={e => { e.currentTarget.style.borderColor = otp[i] ? 'var(--primary)' : 'var(--hairline)'; e.currentTarget.style.background = 'var(--surface-soft)'; }} />
               ))}
             </div>
 
             {/* Attempts remaining indicator */}
             {!otpExpired && attempts > 0 && (
-              <div style={{ marginTop: 8, fontSize: 12, color: remainingAttempts <= 2 ? 'var(--critical)' : 'var(--steel)', textAlign: 'center' }}>
-                {remainingAttempts} attempt{remainingAttempts !== 1 ? 's' : ''} remaining
+              <div style={{ marginTop: 10, fontSize: 12, color: remainingAttempts <= 2 ? 'var(--critical)' : 'var(--steel)', fontWeight: 600, textAlign: 'center' }}>
+                ⚠️ {remainingAttempts} attempt{remainingAttempts !== 1 ? 's' : ''} remaining
               </div>
             )}
 
             {devOtp && (
-              <div id="dev-otp-indicator" style={{ marginTop: 12, padding: '8px 12px', background: 'var(--surface-soft)', border: '1px dashed var(--primary)', borderRadius: 'var(--rounded-lg)', textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--primary)' }}>
-                Dev Mode: {devOtp}
+              <div id="dev-otp-indicator" style={{
+                marginTop: 16, padding: '10px 14px', background: 'rgba(226,55,68,0.04)', border: '1.5px dashed rgba(226,55,68,0.2)',
+                borderRadius: 12, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--primary)',
+                boxShadow: '0 4px 15px rgba(226,55,68,0.05)', animation: 'pulse 2s infinite',
+              }}>
+                🔑 Presentation Mode: {devOtp}
               </div>
             )}
 
-            <div style={{ textAlign: 'right', marginTop: 8 }}>
+            <div style={{ textAlign: 'right', marginTop: 12 }}>
               <button type="button" onClick={handleResend}
                 disabled={cooldown > 0}
                 style={{
-                  background: 'none', border: 'none', color: 'var(--primary)', fontSize: 14,
+                  background: 'none', border: 'none', color: 'var(--primary)', fontSize: 13,
                   fontWeight: 700, cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
-                  opacity: cooldown > 0 ? 0.5 : 1,
+                  opacity: cooldown > 0 ? 0.5 : 1, transition: 'color 0.2s',
                 }}>
                 {cooldown > 0 ? `Resend in ${cooldown}s` : otpExpired ? 'Request New OTP' : 'Change number / Resend'}
               </button>
@@ -357,26 +437,65 @@ function AuthForm() {
           </div>
         )}
 
-        {error && <div style={{ color: 'var(--critical)', fontSize: 13, marginBottom: 12, textAlign: 'center', padding: '8px 12px', background: 'rgba(239,68,68,0.08)', borderRadius: 'var(--rounded-lg)' }}>{error}</div>}
-        {success && <div style={{ color: 'var(--success)', fontSize: 13, marginBottom: 12, textAlign: 'center', padding: '8px 12px', background: 'rgba(34,197,94,0.08)', borderRadius: 'var(--rounded-lg)' }}>{success}</div>}
+        {error && (
+          <div style={{
+            color: 'var(--critical)', fontSize: 13, fontWeight: 500, marginBottom: 16, textAlign: 'left',
+            padding: '12px 16px', background: 'rgba(228,30,63,0.06)', borderRadius: 12,
+            borderLeft: '4px solid var(--critical)', animation: 'fadeIn 0.2s ease',
+          }}>
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div style={{
+            color: 'var(--success)', fontSize: 13, fontWeight: 500, marginBottom: 16, textAlign: 'left',
+            padding: '12px 16px', background: 'rgba(46,125,50,0.06)', borderRadius: 12,
+            borderLeft: '4px solid var(--success)', animation: 'fadeIn 0.2s ease',
+          }}>
+            {success}
+          </div>
+        )}
 
-        <button type="button" className="btn btn-buy-cta" style={{ width: '100%', padding: '14px 0', fontSize: 16, marginBottom: 16 }}
-          onClick={() => otpStatus === 'idle' ? handleSendOtp() : handleVerifyOtp()}
-          disabled={loading || cooldown > 0 || (otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired}>
-          {loading ? 'Sending OTP...' : otpExpired ? 'Request New OTP' : otpStatus === 'idle' ? 'Send OTP' : isLogin ? 'Verify & Sign In' : 'Verify & Sign Up'}
+        <button type="button" className="btn" style={{
+          width: '100%',
+          height: 48,
+          fontSize: 15,
+          fontWeight: 700,
+          marginBottom: 20,
+          background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-deep) 100%)',
+          color: 'var(--on-primary)',
+          boxShadow: '0 6px 20px rgba(226,55,68,0.25)',
+          borderRadius: 12,
+          transition: 'all 0.2s ease',
+          cursor: loading || cooldown > 0 || (otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired ? 'not-allowed' : 'pointer',
+          opacity: loading || cooldown > 0 || (otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired ? 0.6 : 1,
+        }}
+        onClick={() => otpStatus === 'idle' ? handleSendOtp() : handleVerifyOtp()}
+        disabled={loading || cooldown > 0 || (otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired}
+        onMouseEnter={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.boxShadow = '0 8px 25px rgba(226,55,68,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+        onMouseLeave={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.boxShadow = '0 6px 20px rgba(226,55,68,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; } }}>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--on-primary)', borderTopColor: 'transparent', borderRadius: '50%' }} />
+              {otpStatus === 'idle' ? 'Sending Code...' : 'Verifying Code...'}
+            </div>
+          ) : otpExpired ? 'Request New OTP' : otpStatus === 'idle' ? 'Send Verification Code' : isLogin ? 'Verify & Sign In' : 'Verify & Sign Up'}
         </button>
 
         {/* Cooldown indicator */}
         {cooldown > 0 && (
-          <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--steel)', marginBottom: 8 }}>
-            Please wait {cooldown}s before requesting a new OTP
+          <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--steel)', marginBottom: 12, fontWeight: 500 }}>
+            ⏳ Please wait {cooldown}s before requesting a new code
           </div>
         )}
 
-        <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--steel)' }}>
+        <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--steel)', fontWeight: 500 }}>
           {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
           <button type="button" onClick={() => { setIsLogin(!isLogin); resetForm(); }}
-            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            style={{ background: 'none', border: 'none', color: 'var(--primary)', fontWeight: 700, fontSize: 14, cursor: 'pointer', transition: 'color 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--primary-deep)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--primary)'}>
             {isLogin ? 'Sign Up' : 'Log In'}
           </button>
         </p>
