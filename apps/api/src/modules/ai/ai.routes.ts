@@ -728,7 +728,7 @@ export async function aiRoutes(app: FastifyInstance) {
   });
 
   // ── POST /api/v1/ai/chat/customer ──
-  app.post('/api/v1/ai/chat/customer', { preHandler: [authenticate] }, async (request, reply) => {
+  app.post('/api/v1/ai/chat/customer', async (request, reply) => {
     try {
       const user = request.user;
       const customerId = user?.customerId || null;
