@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Home, UtensilsCrossed, ShoppingCart, Package, MapPin } from 'lucide-react';
@@ -16,7 +17,10 @@ const items = [
 
 export default function MobileNav() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
   const cartCount = useCartStore(s => s.getCount());
+
+  useEffect(() => { setMounted(true); }, []);
 
   return (
     <nav aria-label="Mobile navigation" className="mobile-bottom-nav" style={{
@@ -38,7 +42,7 @@ export default function MobileNav() {
             }}>
             <span style={{ position: 'relative' }}>
               {item.icon}
-              {item.showBadge && cartCount > 0 && (
+              {item.showBadge && mounted && cartCount > 0 && (
                 <span style={{
                   position: 'absolute', top: -6, right: -8,
                   background: 'var(--primary)', color: '#fff',

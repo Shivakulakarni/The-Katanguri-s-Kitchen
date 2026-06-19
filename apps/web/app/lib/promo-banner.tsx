@@ -4,11 +4,13 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 export default function PromoBanner() {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const dismissed = localStorage.getItem('promo-banner-dismissed');
-    if (dismissed) setVisible(false);
+    if (!dismissed) setVisible(true);
+    setMounted(true);
   }, []);
 
   const dismiss = () => {
@@ -16,7 +18,7 @@ export default function PromoBanner() {
     localStorage.setItem('promo-banner-dismissed', '1');
   };
 
-  if (!visible) return null;
+  if (!mounted || !visible) return null;
 
   return (
     <div className="promo-banner" style={{
