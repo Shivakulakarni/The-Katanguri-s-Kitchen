@@ -18,15 +18,15 @@ type Dish = {
 type Category = { id: number; name: string; description?: string; displayOrder: number; dishes: Dish[] };
 
 const CATEGORY_IMAGES: Record<string, string> = {
-  'NON-VEG STARTERS': 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=200&h=200&fit=crop',
+  'NON-VEG STARTERS': 'https://images.unsplash.com/photo-1603122876935-13e7f40c3984?w=200&h=200&fit=crop',
   'VEG STARTERS': 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=200&h=200&fit=crop',
-  'NON-VEG CURRIES': 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=200&h=200&fit=crop',
-  'VEG CURRIES': 'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=200&h=200&fit=crop',
-  'CHINESE': 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&h=200&fit=crop',
-  'RICE BOWL COMBO': 'https://images.unsplash.com/photo-1603133872878-684f208fb84b?w=200&h=200&fit=crop',
-  'BIRYANIS': 'https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=200&h=200&fit=crop',
+  'NON-VEG CURRIES': 'https://images.unsplash.com/photo-1708782344490-9026aaa5eec7?w=200&h=200&fit=crop',
+  'VEG CURRIES': 'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=200&h=200&fit=crop',
+  'CHINESE': 'https://images.unsplash.com/photo-1772729219168-af0f0e57bb9c?w=200&h=200&fit=crop',
+  'RICE BOWL COMBO': 'https://images.unsplash.com/photo-1742599361539-f096753d1100?w=200&h=200&fit=crop',
+  'BIRYANIS': 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=200&h=200&fit=crop',
   'BREADS': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&h=200&fit=crop',
-  'DESSERTS': 'https://images.unsplash.com/photo-1551024506-0bccd828d307?w=200&h=200&fit=crop',
+  'DESSERTS': 'https://images.unsplash.com/photo-1593701461250-d7b22dfd3a77?w=200&h=200&fit=crop',
 };
 
 export default function HomePageContent() {
@@ -95,7 +95,7 @@ export default function HomePageContent() {
               width: 400, height: 400, borderRadius: 'var(--rounded-xxxl)',
               overflow: 'hidden', border: '1px solid var(--hairline-soft)', position: 'relative',
             }}>
-              <img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&h=800&fit=crop" alt="Delicious Biryani from The Katanguri's Kitchen" width={400} height={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="eager" fetchPriority="high" onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&h=800&fit=crop'; }} />
+              <img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&h=800&fit=crop" alt="Delicious Biryani from The Katanguri's Kitchen" width={400} height={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="eager" fetchPriority="high" onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1752673508949-f4aeeaef75f0?w=800&h=800&fit=crop'; }} />
             </div>
           </div>
         </div>
