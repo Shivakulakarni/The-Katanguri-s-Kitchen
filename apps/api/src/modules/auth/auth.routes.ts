@@ -363,15 +363,28 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     // Legacy OTP
-    const otp = generateOtp();
+    const otp = phone === '+919999999999' ? '123456' : generateOtp();
     await setOtp(phone, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone });
     if (process.env.NODE_ENV !== 'production') logger.debug({ phone: phone.replace(/(\d{2})\d+(\d{2})/, '$1****$2') }, '[OTP] Sent OTP');
     
+    // If it's the demo phone number, skip Twilio and return success
+    if (phone === '+919999999999') {
+      logger.info({ phone }, '[OTP] Demo bypass triggered for phone');
+      return { message: 'OTP sent to your phone (Demo Mode)', otp: '123456' };
+    }
+
     // Send OTP via Twilio SMS
     const smsResult = await sendSMS(phone, `Your OTP for The Katanguri's Kitchen is ${otp}. Valid for 5 minutes.`);
     
     if (!smsResult.success) {
       logger.warn({ phone }, '[AUTH] SMS delivery failed');
+      if (process.env.ENABLE_DEV_BYPASS === 'true') {
+        return {
+          message: 'SMS delivery failed. Dev bypass active.',
+          smsFailed: true,
+          otp: otp,
+        };
+      }
       return reply.status(503).send({
         error: 'SMS delivery temporarily unavailable. Please try again later or use email OTP.',
       });
@@ -483,14 +496,27 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(429).send({ error: 'Too many requests. Please try again in 15 minutes.' });
     }
 
-    const otp = generateOtp();
+    const otp = email === 'demo@thekatanguriskitchen.com' ? '123456' : generateOtp();
     await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
+
+    // If it's the demo email address, skip Resend and return success
+    if (email === 'demo@thekatanguriskitchen.com') {
+      logger.info({ email }, '[EMAIL OTP] Demo bypass triggered for email');
+      return { message: 'OTP sent to your email (Demo Mode)', otp: '123456' };
+    }
 
     const { sendOTP } = await import('../../services/email.service.js');
     const emailSent = await sendOTP(email, otp, 'login');
 
     if (!emailSent) {
       logger.warn({ email, dev_otp: otp }, `[EMAIL OTP] Email delivery failed — OTP is ${otp}`);
+      if (process.env.ENABLE_DEV_BYPASS === 'true') {
+        return {
+          message: 'Email delivery failed. Dev bypass active.',
+          emailFailed: true,
+          otp: otp,
+        };
+      }
       return reply.status(503).send({
         error: 'Email delivery unavailable. Please try SMS OTP or try again later.',
       });
