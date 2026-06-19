@@ -1,12 +1,19 @@
 {
-  "routes": [
+  "builds": [
     {
-      "src": "/admin(/.*)?",
-      "dest": "apps/admin/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "apps/web/$1"
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "installCommand": "npm install",
+        "buildCommand": "npm run build -w packages/shared && npm run build -w apps/web",
+        "outputDirectory": "apps/web/.next"
+      }
     }
-  ]
+  ],
+  "images": {
+    "remotePatterns": [
+      { "protocol": "https", "hostname": "images.unsplash.com" },
+      { "protocol": "https", "hostname": "images.pexels.com" }
+    ]
+  }
 }
