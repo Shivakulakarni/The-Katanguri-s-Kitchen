@@ -4,7 +4,7 @@ const API_URL = process.env.API_URL || 'http://127.0.0.1:3001';
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: process.env.VERCEL ? undefined : 'standalone',
-  basePath: '/admin',
+  basePath: process.env.VERCEL ? undefined : '/admin',
   transpilePackages: ['@kitchen/shared'],
   experimental: {
     instrumentationHook: true,

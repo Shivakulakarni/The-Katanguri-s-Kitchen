@@ -34,3 +34,5 @@ tests/qa-report/
 
 # SSL private key (regenerate via openssl.cnf for new environments)
 docker/nginx/certs/privkey.pem
+
+.vercel
