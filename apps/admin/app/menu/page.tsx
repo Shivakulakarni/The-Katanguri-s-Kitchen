@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { PageHeader, Card, SectionTitle, Btn, Badge, DataTable, Tr, Td, Field, AdminStyles, T } from '../ui';
 import { ImageUpload } from '../components/ImageUpload';
 import { getAuthHeaders } from '../../lib/auth-headers';
+import { toast } from '../../lib/toast-store';
 
 interface Dish {
   id: number; name: string; description: string; price: string;
@@ -24,12 +25,6 @@ export default function MenuManagementPage() {
   const [newDish, setNewDish] = useState({ name: '', description: '', price: '', prepTimeMin: 15, isVeg: true, imageUrl: '' });
   const [editDish, setEditDish] = useState({ name: '', description: '', price: '', prepTimeMin: 15, isVeg: true, imageUrl: '', isAvailable: true });
   const [search, setSearch] = useState('');
-  const [toastMsg, setToastMsg] = useState<{ msg: string; type: 'error' | 'success' } | null>(null);
-
-  const showToast = (msg: string, type: 'error' | 'success' = 'error') => {
-    setToastMsg({ msg, type });
-    setTimeout(() => setToastMsg(null), 4000);
-  };
 
   const fetchMenu = () => {
     fetch('/api/v1/menu').then(r => r.json()).then((data) => { setCategories(Array.isArray(data) ? data : []); setLoading(false); }).catch(() => setLoading(false));
@@ -59,7 +54,7 @@ export default function MenuManagementPage() {
       const res = await fetch('/api/v1/admin/menu/categories', { method: 'POST', headers: h, body: JSON.stringify(newCat) });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to create category'); }
       setShowCategoryForm(false); setNewCat({ name: '', description: '', displayOrder: 0 }); fetchMenu();
-    } catch (err: any) { showToast(err.message || 'Failed to create category'); }
+    } catch (err: any) { toast.error(err.message || 'Failed to create category'); }
   };
 
   const toggleCategory = async (cat: Category) => {
@@ -68,7 +63,7 @@ export default function MenuManagementPage() {
       const res = await fetch(`/api/v1/admin/menu/categories/${cat.id}`, { method: 'PATCH', headers: h, body: JSON.stringify({ isActive: !cat.isActive }) });
       if (!res.ok) throw new Error('Failed to toggle category');
       fetchMenu();
-    } catch (err: any) { showToast(err.message || 'Failed to toggle category'); }
+    } catch (err: any) { toast.error(err.message || 'Failed to toggle category'); }
   };
 
   const addDish = async (catId: number) => {
@@ -77,7 +72,7 @@ export default function MenuManagementPage() {
       const res = await fetch(`/api/v1/admin/menu/dishes`, { method: 'POST', headers: h, body: JSON.stringify({ ...newDish, categoryId: catId }) });
       if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || 'Failed to create dish'); }
       setShowDishForm(null); setNewDish({ name: '', description: '', price: '', prepTimeMin: 15, isVeg: true, imageUrl: '' }); fetchMenu();
-    } catch (err: any) { showToast(err.message || 'Failed to create dish'); }
+    } catch (err: any) { toast.error(err.message || 'Failed to create dish'); }
   };
 
   const toggleDish = async (dish: Dish) => {
@@ -87,7 +82,7 @@ export default function MenuManagementPage() {
       const res = await fetch(`/api/v1/admin/menu/dishes/${dish.id}`, { method: 'PATCH', headers: h, body: JSON.stringify({ isAvailable: !dish.isAvailable }) });
       if (!res.ok) throw new Error('Failed to toggle dish');
       fetchMenu();
-    } catch (err: any) { showToast(err.message || 'Failed to toggle dish'); }
+    } catch (err: any) { toast.error(err.message || 'Failed to toggle dish'); }
   };
 
   const deleteDish = async (dishId: number) => {
@@ -97,7 +92,7 @@ export default function MenuManagementPage() {
       const res = await fetch(`/api/v1/admin/menu/dishes/${dishId}`, { method: 'DELETE', headers: h });
       if (!res.ok) throw new Error('Failed to delete dish');
       fetchMenu();
-    } catch (err: any) { showToast(err.message || 'Failed to delete dish'); }
+    } catch (err: any) { toast.error(err.message || 'Failed to delete dish'); }
   };
 
   const startEditDish = (dish: Dish) => {
@@ -112,7 +107,7 @@ export default function MenuManagementPage() {
       if (!res.ok) throw new Error('Failed to save dish');
       setEditDishId(null);
       fetchMenu();
-    } catch (err: any) { showToast(err.message || 'Failed to save dish'); }
+    } catch (err: any) { toast.error(err.message || 'Failed to save dish'); }
   };
 
   const filteredCategories = categories.map(c => ({
@@ -123,18 +118,6 @@ export default function MenuManagementPage() {
   return (
     <div>
       <AdminStyles />
-      {toastMsg && (
-        <div style={{
-          position: 'fixed', top: 20, right: 20, zIndex: 9999,
-          padding: '12px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-          background: toastMsg.type === 'error' ? '#fee2e2' : '#dcfce7',
-          color: toastMsg.type === 'error' ? '#991b1b' : '#166534',
-          border: `1px solid ${toastMsg.type === 'error' ? '#fca5a5' : '#86efac'}`,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        }}>
-          {toastMsg.type === 'error' ? '✕' : '✓'} {toastMsg.msg}
-        </div>
-      )}
       <PageHeader icon="🍔" title="Menu Management" subtitle={`${categories.length} categories`}
         right={<Btn variant="primary" onClick={() => setShowCategoryForm(!showCategoryForm)}>{showCategoryForm ? '✕ Cancel' : '+ New Category'}</Btn>}
       />

@@ -37,6 +37,27 @@ function timeAgo(dateStr: string) {
   return `${Math.floor(secs / 3600)}h ago`;
 }
 
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = 800;
+    gain.gain.value = 0.3;
+    osc.start();
+    osc.stop(ctx.currentTime + 0.15);
+    setTimeout(() => {
+      const osc2 = ctx.createOscillator();
+      osc2.connect(gain);
+      osc2.frequency.value = 1000;
+      osc2.start();
+      osc2.stop(ctx.currentTime + 0.15);
+    }, 200);
+  } catch { /* Audio not available */ }
+}
+
 function useTimer() {
   const [tick, setTick] = useState(0);
   useEffect(() => {
@@ -83,6 +104,7 @@ export default function KDSPage() {
       try {
         const data = JSON.parse(e.data);
         if (data.event === 'order.placed') {
+          playBeep();
           fetchOrders();
           if (data.payload?.orderId) {
             setAlertIds(prev => new Set(prev).add(data.payload.orderId));

@@ -413,10 +413,13 @@ a:focus-visible {
   .mobile-bottom-nav { display: flex !important; }
   .floating-cart-bar { bottom: 70px; width: calc(100vw - 32px); border-radius: var(--rounded-lg); }
   .container { padding: 0 16px; }
+  .footer-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+  .footer-mobile { display: block !important; }
 }
 @media (min-width: 769px) {
   .mobile-only { display: none !important; }
   .mobile-bottom-nav { display: none !important; }
+  .footer-mobile { display: none !important; }
 }
 
 /* ── Accessibility: Reduced motion ── */

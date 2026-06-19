@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { useRealtimeContext } from './realtime-context';
 import { useAuthHeaders } from '../lib/auth-headers';
 import { PageHeader, Card, SectionTitle, KpiCard, Btn, Badge, DataTable, Tr, Td, AdminStyles, T } from './ui';
+import { SkeletonKpi } from '@kitchen/shared';
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [allOrders, setAllOrders] = useState<any[]>([]);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   const [kpis, setKpis] = useState([
     { label: 'Revenue Today', value: '\u2014', change: '', icon: '\uD83D\uDCB0', color: '#dcfce7' },
@@ -43,7 +45,8 @@ export default function AdminDashboard() {
           { label: 'Automation Rate', value: autoRate, change: autoChange, icon: '\uD83E\uDD16', color: '#f3e5f5' },
         ]);
       }
-    }).catch(() => setError('Failed to load dashboard data'));
+    }).catch(() => setError('Failed to load dashboard data'))
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchData(); }, [h]);
@@ -114,13 +117,17 @@ export default function AdminDashboard() {
       )}
 
       {/* KPI Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 28 }}>
-        {kpis.map(kpi => (
-          <KpiCard key={kpi.label} {...kpi} />
-        ))}
-      </div>
+      {loading ? (
+        <div style={{ marginBottom: 28 }}><SkeletonKpi count={4} /></div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
+          {kpis.map(kpi => (
+            <KpiCard key={kpi.label} {...kpi} />
+          ))}
+        </div>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
         {/* Recent Orders */}
         <Card padding={0}>
           <div style={{ padding: '20px 24px 12px' }}>

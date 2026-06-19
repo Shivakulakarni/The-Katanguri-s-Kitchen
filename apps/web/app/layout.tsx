@@ -139,13 +139,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <ErrorBoundary>{children}</ErrorBoundary>
         </main>
 
-        {/* Footer */}
+        {/* Footer - Desktop */}
         <footer className="desktop-only" aria-label="Footer" style={{
           background: 'var(--canvas)', color: 'var(--steel)',
           padding: 'var(--space-section) var(--space-xxl) var(--space-xl)',
           borderTop: '1px solid var(--hairline-soft)',
         }}>
-          <div className="container" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 40 }}>
+          <div className="container footer-grid" style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: 40 }}>
             <div>
               <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink-deep)', marginBottom: 16, letterSpacing: '-0.5px' }}>
                 <Logo size={20} /> The Katanguri's Kitchen
@@ -197,6 +197,39 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             textAlign: 'center', fontSize: 12, color: 'var(--stone)'
           }}>
             © 2026 The Katanguri's Kitchen. All rights reserved.
+          </div>
+        </footer>
+
+        {/* Footer - Mobile */}
+        <footer className="footer-mobile mobile-only" aria-label="Footer" style={{
+          display: 'none', background: 'var(--canvas)', color: 'var(--steel)',
+          padding: '32px 20px 24px', borderTop: '1px solid var(--hairline-soft)',
+        }}>
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink-deep)', marginBottom: 8 }}>
+              The Katanguri&apos;s Kitchen
+            </div>
+            <p style={{ fontSize: 13, lineHeight: 1.5 }}>
+              Cooked with love, packed with care, delivered fresh from Hanamkonda, Warangal.
+            </p>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+            <div>
+              <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Quick Links</h4>
+              {['Menu', 'Cart', 'Track Order', 'My Account'].map(label => {
+                const href = label === 'My Account' ? '/account' : label === 'Track Order' ? '/track' : `/${label.toLowerCase()}`;
+                return <Link key={label} href={href} style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>{label}</Link>;
+              })}
+            </div>
+            <div>
+              <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Support</h4>
+              <Link href="/contact" style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>Contact Us</Link>
+              <Link href="/privacy" style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>Privacy Policy</Link>
+              <Link href="/terms" style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>Terms</Link>
+            </div>
+          </div>
+          <div style={{ borderTop: '1px solid var(--hairline-soft)', paddingTop: 16, textAlign: 'center', fontSize: 12, color: 'var(--stone)' }}>
+            © 2026 The Katanguri&apos;s Kitchen. All rights reserved.
           </div>
         </footer>
         </AuthProvider>

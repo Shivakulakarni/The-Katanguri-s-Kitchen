@@ -22,8 +22,8 @@ export const T = {
   textMuted: '#747d8c',
 
   // Accent
-  primary:   '#ff4757',
-  primaryBg: 'rgba(255,71,87,0.08)',
+  primary:   '#e23744',
+  primaryBg: 'rgba(226,55,68,0.08)',
   success:   '#16a34a',
   successBg: '#dcfce7',
   warning:   '#f59e0b',
@@ -144,7 +144,7 @@ const BADGE_STYLES: Record<BadgeVariant, { bg: string; color: string; border?: s
   danger:  { bg: T.dangerBg,  color: '#991b1b', border: '#fca5a5' },
   info:    { bg: T.infoBg,    color: '#1e40af', border: '#bfdbfe' },
   muted:   { bg: T.ghost,     color: T.muted },
-  primary: { bg: T.primaryBg,  color: T.primary, border: 'rgba(255,71,87,0.2)' },
+  primary: { bg: T.primaryBg,  color: T.primary, border: 'rgba(226,55,68,0.2)' },
 };
 
 type BadgeProps = {

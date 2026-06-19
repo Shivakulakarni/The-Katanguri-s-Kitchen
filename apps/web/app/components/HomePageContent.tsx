@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { getDishImage, FALLBACK_DISH_IMAGE } from '../lib/dish-images';
+import { motion } from 'framer-motion';
+import { getDishImage } from '../lib/dish-images';
 
 function formatPrice(price: number) {
   return '₹' + price.toLocaleString('en-IN');
@@ -27,6 +28,18 @@ const CATEGORY_IMAGES: Record<string, string> = {
   'BIRYANIS': 'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a?w=200&h=200&fit=crop',
   'BREADS': 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=200&h=200&fit=crop',
   'DESSERTS': 'https://images.unsplash.com/photo-1593701461250-d7b22dfd3a77?w=200&h=200&fit=crop',
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1, y: 0,
+    transition: { delay: i * 0.1, duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] },
+  }),
+};
+
+const stagger = {
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
 export default function HomePageContent() {
@@ -52,27 +65,45 @@ export default function HomePageContent() {
       .catch(err => { if (err.name !== 'AbortError') console.error('Failed to fetch menu:', err) });
     return () => ac.abort();
   }, []);
+
   return (
     <div>
+      {/* Hero Section */}
       <section style={{
         background: 'var(--canvas)', position: 'relative', overflow: 'hidden',
         padding: 'var(--space-hero) 32px var(--space-section-lg)',
       }}>
-        <div className="container" style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 48 }}>
-          <div style={{ flex: 1 }}>
+        <div className="container" style={{
+          position: 'relative', zIndex: 1,
+          display: 'flex', alignItems: 'center', gap: 48,
+          flexWrap: 'wrap',
+        }}>
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+            style={{ flex: '1 1 400px', minWidth: 280 }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--primary)', boxShadow: '0 4px 16px rgba(255,71,87,0.3)', flexShrink: 0 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: '50%', overflow: 'hidden',
+                border: '2px solid var(--primary)', boxShadow: '0 4px 16px rgba(255,71,87,0.3)', flexShrink: 0,
+              }}>
                 <Image src="/logo.avif" alt="The Katanguri's Kitchen" width={48} height={48} style={{ objectFit: 'cover' }} priority />
               </div>
-              <div style={{ display: 'inline-block', padding: '4px 12px', background: 'var(--warning-bg)', color: 'var(--ink-deep)', borderRadius: 'var(--rounded-full)', fontSize: 12, fontWeight: 700, letterSpacing: '-0.14px' }}>
-                🔥 Warangal's Favorite Kitchen
+              <div style={{
+                display: 'inline-block', padding: '4px 12px',
+                background: 'var(--warning-bg)', color: 'var(--ink-deep)',
+                borderRadius: 'var(--rounded-full)', fontSize: 12, fontWeight: 700,
+              }}>
+                🔥 Warangal&apos;s Favorite Kitchen
               </div>
             </div>
             <h1 style={{
               fontSize: 'clamp(36px, 5vw, 64px)', fontWeight: 500, color: 'var(--ink-deep)',
               lineHeight: 1.16, marginBottom: 16, letterSpacing: '-0.5px',
             }}>
-              The Katanguri's<br />
+              The Katanguri&apos;s<br />
               <span style={{ color: 'var(--primary)' }}>Kitchen</span>
             </h1>
             <p style={{ fontSize: 18, color: 'var(--steel)', maxWidth: 460, marginBottom: 8, lineHeight: 1.44, fontStyle: 'italic' }}>
@@ -89,69 +120,130 @@ export default function HomePageContent() {
                 View Menu →
               </Link>
             </div>
-          </div>
-          <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, x: 30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
+            style={{ flex: '1 1 300px', display: 'flex', justifyContent: 'center' }}
+          >
             <div style={{
-              width: 400, height: 400, borderRadius: 'var(--rounded-xxxl)',
-              overflow: 'hidden', border: '1px solid var(--hairline-soft)', position: 'relative',
+              width: '100%', maxWidth: 400, aspectRatio: '1',
+              borderRadius: 'var(--rounded-xxxl)', overflow: 'hidden',
+              border: '1px solid var(--hairline-soft)', position: 'relative',
             }}>
-              <img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&h=800&fit=crop" alt="Delicious Biryani from The Katanguri's Kitchen" width={400} height={400} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="eager" fetchPriority="high" onError={e => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1752673508949-f4aeeaef75f0?w=800&h=800&fit=crop'; }} />
+              <img
+                src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&h=800&fit=crop"
+                alt="Delicious Biryani from The Katanguri's Kitchen"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                loading="eager"
+              />
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
+      {/* Stats Bar */}
       <section className="container" style={{ marginTop: -40, marginBottom: 64, position: 'relative', zIndex: 2 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0 }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+            gap: 0,
+          }}
+        >
           {[
             { value: totalDishes > 0 ? `${totalDishes}+` : '50+', label: 'Dishes', icon: '🍛' },
             { value: '30 min', label: 'Avg. Delivery', icon: '⏱️' },
             { value: '4.8★', label: 'Rating on Swiggy', icon: '⭐' },
           ].map((stat, i) => (
-            <div key={stat.label} className="card-icon-feature" style={{
-              textAlign: 'center', borderRadius: i === 0 ? 'var(--rounded-xxxl) 0 0 var(--rounded-xxxl)' : i === 2 ? '0 var(--rounded-xxxl) var(--rounded-xxxl) 0' : '0',
+            <motion.div key={stat.label} custom={i} variants={fadeUp} className="card-icon-feature" style={{
+              textAlign: 'center',
+              borderRadius: i === 0 ? 'var(--rounded-xxxl) 0 0 var(--rounded-xxxl)' : i === 2 ? '0 var(--rounded-xxxl) var(--rounded-xxxl) 0' : '0',
               borderRight: i < 2 ? '1px solid var(--hairline-soft)' : 'none',
             }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>{stat.icon}</div>
               <div style={{ fontSize: 28, fontWeight: 500, color: 'var(--primary)', marginBottom: 4 }}>{stat.value}</div>
               <div style={{ fontSize: 14, color: 'var(--steel)', fontWeight: 700 }}>{stat.label}</div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
+      {/* Categories */}
       <section className="container" style={{ marginBottom: 64 }}>
-        <h2 style={{ fontSize: 36, fontWeight: 500, marginBottom: 24, color: 'var(--ink-deep)', letterSpacing: '-0.5px' }}>What's on your mind?</h2>
+        <motion.h2
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 500, marginBottom: 24, color: 'var(--ink-deep)', letterSpacing: '-0.5px' }}
+        >
+          What&apos;s on your mind?
+        </motion.h2>
         <div className="scroll-x">
-          {categories.map(c => (
-            <Link key={c.id} href={`/menu?category=${encodeURIComponent(c.name)}`} className="card" style={{
-              minWidth: 140, padding: 0, overflow: 'hidden', position: 'relative',
-            }}>
-              <img src={CATEGORY_IMAGES[c.name] || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=200&fit=crop'} alt={c.name} width={140} height={140} style={{ objectFit: 'cover', width: '100%', height: 140 }} loading="eager" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-              <div style={{ padding: '12px 16px', textAlign: 'center', background: 'var(--canvas)' }}>
-                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink-deep)' }}>{c.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--stone)' }}>{c.dishes.length} items</div>
-              </div>
-            </Link>
+          {categories.map((c, i) => (
+            <motion.div
+              key={c.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.05 }}
+            >
+              <Link href={`/menu?category=${encodeURIComponent(c.name)}`} className="card" style={{
+                minWidth: 140, padding: 0, overflow: 'hidden', position: 'relative',
+              }}>
+                <img
+                  src={CATEGORY_IMAGES[c.name] || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=200&fit=crop'}
+                  alt={c.name}
+                  style={{ objectFit: 'cover', width: '100%', height: 140 }}
+                  loading="eager"
+                />
+                <div style={{ padding: '12px 16px', textAlign: 'center', background: 'var(--canvas)' }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink-deep)' }}>{c.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--stone)' }}>{c.dishes.length} items</div>
+                </div>
+              </Link>
+            </motion.div>
           ))}
           {categories.length === 0 && Array(6).fill(null).map((_, i) => (
-            <div key={i} className="card" style={{ minWidth: 140, height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ color: '#767676', fontSize: 12 }}>Loading...</div>
-            </div>
+            <div key={i} className="card skeleton" style={{ minWidth: 140, height: 180 }} />
           ))}
         </div>
       </section>
 
+      {/* Popular Dishes */}
       <section className="container" style={{ marginBottom: 64 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ fontSize: 36, fontWeight: 500, color: 'var(--ink-deep)', letterSpacing: '-0.5px' }}>Popular Dishes</h2>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 500, color: 'var(--ink-deep)', letterSpacing: '-0.5px' }}
+          >
+            Popular Dishes
+          </motion.h2>
           <Link href="/menu" style={{ color: 'var(--primary)', fontWeight: 700, fontSize: 14 }}>View All →</Link>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 20 }}
+        >
           {popularDishes.map((dish, i) => (
-            <div key={dish.id} className="card" style={{ animation: `fadeInUp 0.3s ease ${i * 0.08}s forwards`, opacity: 0 }}>
+            <motion.div key={dish.id} custom={i} variants={fadeUp} className="card">
               <div style={{ position: 'relative', height: 180, borderRadius: 'var(--rounded-xxxl) var(--rounded-xxxl) 0 0', overflow: 'hidden' }}>
-                <img src={getDishImage(dish.name, dish.imageUrl, dish.category?.name)} alt={dish.name} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} loading="eager" onError={e => { (e.target as HTMLImageElement).src = FALLBACK_DISH_IMAGE; }} />
+                <img
+                  src={getDishImage(dish.name, dish.imageUrl, dish.category?.name)}
+                  alt={dish.name}
+                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                  loading="lazy"
+                />
                 <span className={`tag ${dish.isVeg ? 'tag-veg' : 'tag-nonveg'}`}
                   style={{ position: 'absolute', top: 12, left: 12 }}>
                   {dish.isVeg ? 'VEG' : 'NON-VEG'}
@@ -164,34 +256,43 @@ export default function HomePageContent() {
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   {dish.prepTimeMinutes && <span className="badge badge-time">⏱️ {dish.prepTimeMinutes} min</span>}
-                  <span style={{ fontSize: 13, color: 'var(--stone)' }}>Free delivery</span>
                 </div>
                 <button className="btn btn-buy-cta" style={{ width: '100%', marginTop: 16, padding: '12px 0' }} onClick={() => router.push('/menu')}>
                   View Menu
                 </button>
               </div>
-            </div>
+            </motion.div>
           ))}
           {popularDishes.length === 0 && Array(4).fill(null).map((_, i) => (
-            <div key={i} className="card" style={{ height: 320, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ color: '#767676' }}>Loading...</div>
-            </div>
+            <div key={i} className="card skeleton" style={{ height: 320 }} />
           ))}
-        </div>
+        </motion.div>
       </section>
 
+      {/* How It Works */}
       <section style={{ background: 'var(--surface-soft)', padding: 'var(--space-section-lg) 20px', marginBottom: 64 }}>
         <div className="container">
-          <h2 style={{ fontSize: 36, fontWeight: 500, textAlign: 'center', marginBottom: 48, color: 'var(--ink-deep)', letterSpacing: '-0.5px' }}>
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 500, textAlign: 'center', marginBottom: 48, color: 'var(--ink-deep)', letterSpacing: '-0.5px' }}
+          >
             How it <span style={{ color: 'var(--primary)' }}>works</span>
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 32 }}>
+          </motion.h2>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            variants={stagger}
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 32 }}
+          >
             {[
               { step: '01', title: 'Choose', desc: 'Browse our menu of authentic South Indian dishes', icon: '📱' },
               { step: '02', title: 'Order', desc: 'Customize, pay securely, and we start cooking', icon: '✅' },
               { step: '03', title: 'Enjoy', desc: 'Track in real-time as it gets delivered hot to you', icon: '🚀' },
-            ].map(item => (
-              <div key={item.step} className="card-icon-feature" style={{ textAlign: 'center' }}>
+            ].map((item, i) => (
+              <motion.div key={item.step} custom={i} variants={fadeUp} className="card-icon-feature" style={{ textAlign: 'center' }}>
                 <div style={{
                   width: 64, height: 64, borderRadius: 'var(--rounded-circle)',
                   background: 'var(--surface-soft)', color: 'var(--primary)',
@@ -201,39 +302,52 @@ export default function HomePageContent() {
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--primary)', marginBottom: 4, letterSpacing: '2px' }}>{item.step}</div>
                 <h3 style={{ fontSize: 20, fontWeight: 500, marginBottom: 8, color: 'var(--ink-deep)' }}>{item.title}</h3>
                 <p style={{ fontSize: 14, color: 'var(--steel)', lineHeight: 1.5, maxWidth: 260, margin: '0 auto' }}>{item.desc}</p>
-              </div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </div>
       </section>
 
+      {/* Features */}
       <section className="container" style={{ marginBottom: 64 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={stagger}
+          style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 20 }}
+        >
           {[
             { icon: '🛵', title: 'Free Delivery', desc: 'On orders above ₹500' },
             { icon: '👨‍🍳', title: 'Fresh & Hot', desc: 'Cooked after you order' },
             { icon: '🛡️', title: 'Quality Assured', desc: 'Hygienic kitchen, fresh ingredients' },
             { icon: '📍', title: 'Real-time Tracking', desc: 'Live order status updates' },
-          ].map(f => (
-            <div key={f.title} className="card-icon-feature" style={{ textAlign: 'center' }}>
+          ].map((f, i) => (
+            <motion.div key={f.title} custom={i} variants={fadeUp} className="card-icon-feature" style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 32, marginBottom: 12 }}>{f.icon}</div>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink-deep)', marginBottom: 4 }}>{f.title}</div>
               <div style={{ fontSize: 14, color: 'var(--steel)' }}>{f.desc}</div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </section>
 
+      {/* CTA */}
       <section className="container" style={{ marginBottom: 64 }}>
-        <div className="card-promo-strip" style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: 36, fontWeight: 500, marginBottom: 8, color: 'var(--canvas)' }}>Ready to eat?</h2>
-          <p style={{ fontSize: 16, opacity: 0.9, marginBottom: 32, maxWidth: 400, margin: '0 auto 32px', color: 'var(--canvas)' }}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="card-promo-strip" style={{ textAlign: 'center' }}
+        >
+          <h2 style={{ fontSize: 'clamp(28px, 4vw, 36px)', fontWeight: 500, marginBottom: 8, color: 'var(--canvas)' }}>Ready to eat?</h2>
+          <p style={{ fontSize: 16, opacity: 0.9, maxWidth: 400, margin: '0 auto 32px', color: 'var(--canvas)' }}>
             Freshly cooked Biryani, Starters, and more &mdash; delivered in 30 minutes or less.
           </p>
           <Link href="/menu" className="btn btn-buy-cta" style={{ fontSize: 16, padding: '14px 40px' }}>
             🛵 Order Now
           </Link>
-        </div>
+        </motion.div>
       </section>
     </div>
   );
