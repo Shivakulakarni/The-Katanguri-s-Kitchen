@@ -6,8 +6,9 @@
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM"],
     "noEmit": false,
-    "declaration": true,
-    "declarationMap": false
+    "declaration": false,
+    "declarationMap": false,
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
