@@ -371,11 +371,12 @@ export async function authRoutes(app: FastifyInstance) {
     const smsResult = await sendSMS(phone, `Your OTP for The Katanguri's Kitchen is ${otp}. Valid for 5 minutes.`);
     
     if (!smsResult.success) {
-      logger.warn({ phone, error: smsResult.error }, '[AUTH] SMS delivery failed');
+      logger.warn({ phone, error: smsResult.error, dev_otp: otp }, `[AUTH] SMS delivery failed - OTP is ${otp}`);
       return { 
         message: 'SMS delivery unavailable. Please use email OTP instead.', 
         smsFailed: true,
         _dev_otp: otp,
+        otp: otp,
       };
     }
 
@@ -500,10 +501,10 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     if (!emailSent) {
-      logger.warn({ email, otp }, '[EMAIL OTP] Email delivery failed — OTP logged for debugging');
+      logger.warn({ email, dev_otp: otp }, `[EMAIL OTP] Email delivery failed — OTP is ${otp}`);
     }
 
-    return { message: 'OTP sent to your email', _dev_otp: emailSent ? undefined : otp };
+    return { message: 'OTP sent to your email', _dev_otp: emailSent ? undefined : otp, otp: emailSent ? undefined : otp };
   });
 
   // ── Verify Email OTP (login or register) ──
