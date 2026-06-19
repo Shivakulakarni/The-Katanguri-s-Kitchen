@@ -2,8 +2,16 @@
   "builds": [
     {
       "src": "apps/web/next.config.js",
-      "use": "@vercel/next"
+      "use": "@vercel/next",
+      "config": {
+        "images": {
+          "sizes": [640, 800, 1024, 1280, 1920],
+          "remotePatterns": [
+            { "protocol": "https", "hostname": "images.unsplash.com" },
+            { "protocol": "https", "hostname": "images.pexels.com" }
+          ]
+        }
+      }
     }
-  ],
-  "outputDirectory": "apps/web/.next"
+  ]
 }
