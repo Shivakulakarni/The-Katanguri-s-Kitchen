@@ -372,6 +372,12 @@ async function main() {
       version: '1.0.0',
       environment: process.env.NODE_ENV || 'development',
       checks,
+      config: {
+        resendKey: !!process.env.RESEND_API_KEY,
+        supabaseJwt: !!process.env.SUPABASE_JWT_SECRET,
+        supabaseUrl: !!process.env.SUPABASE_URL,
+        appUrl: !!process.env.APP_URL,
+      },
     });
   });
 

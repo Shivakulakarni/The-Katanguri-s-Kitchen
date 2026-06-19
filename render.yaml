@@ -43,7 +43,7 @@ services:
       - key: TWILIO_PHONE_NUMBER
         sync: false
       - key: ENABLE_DEV_BYPASS
-        value: "true"
+        value: "false"
       - key: LOG_LEVEL
         value: info
       - key: KITCHEN_LAT
