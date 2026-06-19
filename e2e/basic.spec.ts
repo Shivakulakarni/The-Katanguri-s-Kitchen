@@ -38,6 +38,7 @@ test.describe('Menu page', () => {
 
 test.describe('Cart flow', () => {
   test('can add dish to cart', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
     await page.goto('/menu');
     await page.waitForSelector('button:has-text("+ Add")', { timeout: 10000 });
     const addButton = page.locator('button', { hasText: /Add/i }).first();
