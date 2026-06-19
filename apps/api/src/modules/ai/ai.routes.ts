@@ -814,7 +814,8 @@ export async function aiRoutes(app: FastifyInstance) {
 
       const responseMessage = await chatAdminInsights(message, history, lowStockDescription, salesStatsDescription);
       return { response: responseMessage };
-    } catch {
+    } catch (err: any) {
+      logger.error({ err: err?.message, stack: err?.stack }, '[AI] Admin chat insights failed');
       return reply.status(500).send({ error: 'Admin insights chat request failed' });
     }
   });
