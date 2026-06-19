@@ -36,6 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <html lang="en" className={`${outfit.variable} ${plusJakarta.variable}`}>
       <body style={{ fontFamily: 'var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, sans-serif' }}>
+        <script dangerouslySetInnerHTML={{ __html: `if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(regs=>{for(let r of regs)r.unregister()})}` }} />
         <AdminAuthProvider>
           <AdminToastProvider>
             <AdminShell>{children}</AdminShell>

@@ -85,6 +85,13 @@ async function staleWhileRevalidate(request, cacheName) {
   const fetchPromise = fetch(request).then((response) => {
     if (response.ok) cache.put(request, response.clone());
     return response;
-  }).catch(() => cached);
+  }).catch((err) => {
+    if (cached) return cached;
+    return new Response('Network connection failed or service unavailable.', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: new Headers({ 'Content-Type': 'text/plain' })
+    });
+  });
   return cached || fetchPromise;
 }
