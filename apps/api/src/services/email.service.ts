@@ -1,4 +1,4 @@
-import sgMail from '@sendgrid/mail';
+import { Resend } from 'resend';
 import { logger } from '../utils/logger.js';
 
 function escapeHtml(str: string): string {
@@ -6,20 +6,18 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY || '';
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || 'orders@thekatanguriskitchen.com';
+const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'The Katanguri\'s Kitchen <onboarding@resend.dev>';
+const REPLY_TO_EMAIL = process.env.RESEND_REPLY_TO_EMAIL || '';
 const APP_NAME = 'The Katanguri\'s Kitchen';
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
 
-if (SENDGRID_API_KEY && SENDGRID_API_KEY.startsWith('SG.')) {
-  sgMail.setApiKey(SENDGRID_API_KEY);
-  logger.info('[EMAIL] SendGrid initialized');
-} else {
-  logger.info('[EMAIL] SendGrid API key not set — emails will log to console');
-}
+const resend = RESEND_API_KEY ? new Resend(RESEND_API_KEY) : null;
 
-function isEnabled(): boolean {
-  return SENDGRID_API_KEY.startsWith('SG.');
+if (resend) {
+  logger.info('[EMAIL] Resend initialized');
+} else {
+  logger.warn('[EMAIL] RESEND_API_KEY not set — emails will not be sent');
 }
 
 function baseTemplate(title: string, content: string): string {
@@ -57,130 +55,31 @@ export interface SendEmailOptions {
 }
 
 async function send(options: SendEmailOptions): Promise<boolean> {
-  if (!isEnabled()) {
-    logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Console mode');
-    return true;
+  if (!resend) {
+    logger.warn({ to: options.to, subject: options.subject }, '[EMAIL] Skipped — no provider configured');
+    return false;
   }
 
   try {
-    await sgMail.send({
-      to: options.to,
+    const payload: any = {
       from: FROM_EMAIL,
+      to: [options.to],
       subject: options.subject,
       html: options.html,
-      text: options.text || options.subject,
-    });
-    logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Sent');
+    };
+    if (REPLY_TO_EMAIL) payload.reply_to = REPLY_TO_EMAIL;
+
+    const { error } = await resend.emails.send(payload);
+    if (error) {
+      logger.error({ err: error, to: options.to }, '[EMAIL] Resend error');
+      return false;
+    }
+    logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Sent via Resend');
     return true;
   } catch (err: any) {
     logger.error({ err: err.message, to: options.to }, '[EMAIL] Failed');
-    if (err.response?.body?.errors) {
-      logger.error({ errors: err.response.body.errors }, '[EMAIL] SendGrid errors');
-    }
     return false;
   }
-}
-
-// ── Order Confirmation ──
-export async function sendOrderConfirmation(email: string, orderId: number, items: { name: string; qty: number; price: number }[], totalAmount: number): Promise<boolean> {
-  const itemRows = items.map(i =>
-    `<tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#333;">${escapeHtml(i.name)}</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:center;color:#666;">x${i.qty}</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600;">₹${i.price * i.qty}</td></tr>`
-  ).join('');
-
-  const html = baseTemplate('Order Confirmed! 🎉', `
-    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Thank you for your order! We've received it and our kitchen is getting started.</p>
-    <div style="background:#f8f8f8;border-radius:10px;padding:20px;margin-bottom:20px;">
-      <div style="font-size:14px;color:#999;margin-bottom:4px;">Order #${orderId}</div>
-      <table style="width:100%;border-collapse:collapse;">
-        <thead><tr style="border-bottom:2px solid #1c1c1c;"><th style="padding:8px 0;text-align:left;font-size:13px;color:#999;">Item</th><th style="padding:8px 0;text-align:center;font-size:13px;color:#999;">Qty</th><th style="padding:8px 0;text-align:right;font-size:13px;color:#999;">Price</th></tr></thead>
-        <tbody>${itemRows}</tbody>
-        <tfoot><tr style="border-top:2px solid #1c1c1c;"><td colspan="2" style="padding:12px 0;font-weight:700;font-size:16px;">Total</td><td style="padding:12px 0;text-align:right;font-weight:700;font-size:16px;color:#e23744;">₹${totalAmount}</td></tr></tfoot>
-      </table>
-    </div>
-    <div style="text-align:center;margin-bottom:16px;">
-      <a href="${APP_URL}/track?id=${orderId}" style="display:inline-block;background:#e23744;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Track Your Order →</a>
-    </div>
-    <p style="color:#999;font-size:13px;text-align:center;">Estimated delivery: 30 minutes</p>
-  `);
-
-  return send({ to: email, subject: `Order #${orderId} Confirmed — ${APP_NAME}`, html });
-}
-
-// ── Out for Delivery ──
-export async function sendOutForDelivery(email: string, orderId: number): Promise<boolean> {
-  const html = baseTemplate('Your Order is On the Way! 🛵', `
-    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Great news! Your order has left the kitchen and is heading your way.</p>
-    <div style="text-align:center;margin:24px 0;">
-      <a href="${APP_URL}/track?id=${orderId}" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Track Live →</a>
-    </div>
-    <p style="color:#999;font-size:13px;text-align:center;">Your delivery partner will reach you shortly.</p>
-  `);
-
-  return send({ to: email, subject: `Order #${orderId} Out for Delivery — ${APP_NAME}`, html });
-}
-
-// ── Feedback Request ──
-export async function sendFeedbackRequest(email: string, orderId: number): Promise<boolean> {
-  const html = baseTemplate('How Was Your Meal? ⭐', `
-    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">We hope you enjoyed your food! Your feedback helps us serve you better.</p>
-    <div style="text-align:center;margin:24px 0;">
-      <a href="${APP_URL}/feedback/${orderId}" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Rate Your Experience →</a>
-    </div>
-    <p style="color:#999;font-size:13px;text-align:center;">It takes just 30 seconds and means the world to us.</p>
-  `);
-
-  return send({ to: email, subject: `How was Order #${orderId}? — ${APP_NAME}`, html });
-}
-
-// ── Abandoned Cart ──
-export async function sendAbandonedCart(email: string, cartSummary: string): Promise<boolean> {
-  const html = baseTemplate('You Left Items in Your Cart! 🛒', `
-    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Don't miss out! Your favorites are waiting. Complete your order now and get <strong style="color:#e23744;">10% OFF</strong>.</p>
-    <div style="background:#fff5f5;border-radius:10px;padding:20px;margin-bottom:20px;text-align:center;">
-      <div style="font-size:14px;color:#666;margin-bottom:8px;">${escapeHtml(cartSummary)}</div>
-      <div style="font-size:24px;font-weight:700;color:#e23744;">10% OFF</div>
-      <div style="font-size:12px;color:#999;margin-top:4px;">Use code: COMEBACK10</div>
-    </div>
-    <div style="text-align:center;">
-      <a href="${APP_URL}/cart" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Complete Order →</a>
-    </div>
-  `);
-
-  return send({ to: email, subject: `Complete Your Order — 10% Off — ${APP_NAME}`, html });
-}
-
-// ── Re-engagement ──
-export async function sendReEngagement(email: string, name: string): Promise<boolean> {
-  const html = baseTemplate(`We Miss You, ${escapeHtml(name)}! 💛`, `
-    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">It's been a while since your last order. We've got something special for you — <strong style="color:#e23744;">15% OFF</strong> your next order!</p>
-    <div style="background:#fff5f5;border-radius:10px;padding:24px;margin-bottom:20px;text-align:center;">
-      <div style="font-size:14px;color:#999;margin-bottom:8px;">Your exclusive code</div>
-      <div style="font-size:28px;font-weight:700;color:#e23744;letter-spacing:2px;">WELCOME15</div>
-      <div style="font-size:12px;color:#999;margin-top:4px;">Valid for 7 days</div>
-    </div>
-    <div style="text-align:center;">
-      <a href="${APP_URL}/menu" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Order Now →</a>
-    </div>
-  `);
-
-  return send({ to: email, subject: `15% Off — We Miss You! — ${APP_NAME}`, html });
-}
-
-// ── Admin Alert ──
-export async function sendAdminAlert(emails: string[], subject: string, body: string): Promise<boolean> {
-  const html = baseTemplate('⚠️ System Alert', `
-    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:20px;margin-bottom:16px;">
-      <pre style="margin:0;font-family:monospace;font-size:13px;color:#92400e;white-space:pre-wrap;">${escapeHtml(body)}</pre>
-    </div>
-    <p style="color:#999;font-size:12px;">This is an automated alert from the kitchen management system.</p>
-  `);
-
-  let allSuccess = true;
-  for (const email of emails) {
-    const ok = await send({ to: email, subject: `[ALERT] ${subject}`, html });
-    if (!ok) allSuccess = false;
-  }
-  return allSuccess;
 }
 
 // ── OTP Email ──
@@ -196,6 +95,108 @@ export async function sendOTP(email: string, otp: string, purpose: string = 'ver
   `);
 
   return send({ to: email, subject: `Your ${purpose} Code — ${APP_NAME}`, html });
+}
+
+// ── Order Confirmation ──
+export async function sendOrderConfirmation(email: string, orderId: number, items: { name: string; qty: number; price: number }[], totalAmount: number): Promise<boolean> {
+  const itemRows = items.map(i =>
+    `<tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#333;">${escapeHtml(i.name)}</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:center;color:#666;">x${i.qty}</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600;">₹${i.price * i.qty}</td></tr>`
+  ).join('');
+
+  const html = baseTemplate('Order Confirmed!', `
+    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Thank you for your order! We've received it and our kitchen is getting started.</p>
+    <div style="background:#f8f8f8;border-radius:10px;padding:20px;margin-bottom:20px;">
+      <div style="font-size:14px;color:#999;margin-bottom:4px;">Order #${orderId}</div>
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr style="border-bottom:2px solid #1c1c1c;"><th style="padding:8px 0;text-align:left;font-size:13px;color:#999;">Item</th><th style="padding:8px 0;text-align:center;font-size:13px;color:#999;">Qty</th><th style="padding:8px 0;text-align:right;font-size:13px;color:#999;">Price</th></tr></thead>
+        <tbody>${itemRows}</tbody>
+        <tfoot><tr style="border-top:2px solid #1c1c1c;"><td colspan="2" style="padding:12px 0;font-weight:700;font-size:16px;">Total</td><td style="padding:12px 0;text-align:right;font-weight:700;font-size:16px;color:#e23744;">₹${totalAmount}</td></tr></tfoot>
+      </table>
+    </div>
+    <div style="text-align:center;margin-bottom:16px;">
+      <a href="${APP_URL}/track?id=${orderId}" style="display:inline-block;background:#e23744;color:#fff;padding:12px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:14px;">Track Your Order</a>
+    </div>
+    <p style="color:#999;font-size:13px;text-align:center;">Estimated delivery: 30 minutes</p>
+  `);
+
+  return send({ to: email, subject: `Order #${orderId} Confirmed — ${APP_NAME}`, html });
+}
+
+// ── Out for Delivery ──
+export async function sendOutForDelivery(email: string, orderId: number): Promise<boolean> {
+  const html = baseTemplate('Your Order is On the Way!', `
+    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Great news! Your order has left the kitchen and is heading your way.</p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${APP_URL}/track?id=${orderId}" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Track Live</a>
+    </div>
+    <p style="color:#999;font-size:13px;text-align:center;">Your delivery partner will reach you shortly.</p>
+  `);
+
+  return send({ to: email, subject: `Order #${orderId} Out for Delivery — ${APP_NAME}`, html });
+}
+
+// ── Feedback Request ──
+export async function sendFeedbackRequest(email: string, orderId: number): Promise<boolean> {
+  const html = baseTemplate('How Was Your Meal?', `
+    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">We hope you enjoyed your food! Your feedback helps us serve you better.</p>
+    <div style="text-align:center;margin:24px 0;">
+      <a href="${APP_URL}/feedback/${orderId}" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Rate Your Experience</a>
+    </div>
+    <p style="color:#999;font-size:13px;text-align:center;">It takes just 30 seconds and means the world to us.</p>
+  `);
+
+  return send({ to: email, subject: `How was Order #${orderId}? — ${APP_NAME}`, html });
+}
+
+// ── Abandoned Cart ──
+export async function sendAbandonedCart(email: string, cartSummary: string): Promise<boolean> {
+  const html = baseTemplate('You Left Items in Your Cart!', `
+    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Don't miss out! Your favorites are waiting. Complete your order now and get <strong style="color:#e23744;">10% OFF</strong>.</p>
+    <div style="background:#fff5f5;border-radius:10px;padding:20px;margin-bottom:20px;text-align:center;">
+      <div style="font-size:14px;color:#666;margin-bottom:8px;">${escapeHtml(cartSummary)}</div>
+      <div style="font-size:24px;font-weight:700;color:#e23744;">10% OFF</div>
+      <div style="font-size:12px;color:#999;margin-top:4px;">Use code: COMEBACK10</div>
+    </div>
+    <div style="text-align:center;">
+      <a href="${APP_URL}/cart" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Complete Order</a>
+    </div>
+  `);
+
+  return send({ to: email, subject: `Complete Your Order — 10% Off — ${APP_NAME}`, html });
+}
+
+// ── Re-engagement ──
+export async function sendReEngagement(email: string, name: string): Promise<boolean> {
+  const html = baseTemplate(`We Miss You, ${escapeHtml(name)}!`, `
+    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">It's been a while since your last order. We've got something special for you — <strong style="color:#e23744;">15% OFF</strong> your next order!</p>
+    <div style="background:#fff5f5;border-radius:10px;padding:24px;margin-bottom:20px;text-align:center;">
+      <div style="font-size:14px;color:#999;margin-bottom:8px;">Your exclusive code</div>
+      <div style="font-size:28px;font-weight:700;color:#e23744;letter-spacing:2px;">WELCOME15</div>
+      <div style="font-size:12px;color:#999;margin-top:4px;">Valid for 7 days</div>
+    </div>
+    <div style="text-align:center;">
+      <a href="${APP_URL}/menu" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Order Now</a>
+    </div>
+  `);
+
+  return send({ to: email, subject: `15% Off — We Miss You! — ${APP_NAME}`, html });
+}
+
+// ── Admin Alert ──
+export async function sendAdminAlert(emails: string[], subject: string, body: string): Promise<boolean> {
+  const html = baseTemplate('System Alert', `
+    <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:20px;margin-bottom:16px;">
+      <pre style="margin:0;font-family:monospace;font-size:13px;color:#92400e;white-space:pre-wrap;">${escapeHtml(body)}</pre>
+    </div>
+    <p style="color:#999;font-size:12px;">This is an automated alert from the kitchen management system.</p>
+  `);
+
+  let allSuccess = true;
+  for (const email of emails) {
+    const ok = await send({ to: email, subject: `[ALERT] ${subject}`, html });
+    if (!ok) allSuccess = false;
+  }
+  return allSuccess;
 }
 
 // ── Contact Form Email ──

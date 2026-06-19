@@ -486,31 +486,15 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(429).send({ error: 'Too many requests. Please try again in 15 minutes.' });
     }
 
-    // Try Supabase Auth OTP first (handles email delivery automatically)
-    if (supabaseAdmin) {
-      const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
-      if (!error) {
-        logger.info({ email }, '[EMAIL OTP] Supabase OTP sent');
-        return { message: 'OTP sent to your email' };
-      }
-      logger.warn({ err: error.message, email }, '[EMAIL OTP] Supabase OTP failed, falling back to local OTP');
-    }
-
-    // Fallback: local OTP via SendGrid
     const otp = generateOtp();
     await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
 
-    let emailSent = false;
-    try {
-      const { sendOTP } = await import('../../services/email.service.js');
-      emailSent = await sendOTP(email, otp, 'login');
-    } catch (err: any) {
-      logger.warn({ email, error: err?.message }, '[EMAIL OTP] SendGrid error');
-    }
+    const { sendOTP } = await import('../../services/email.service.js');
+    const emailSent = await sendOTP(email, otp, 'login');
 
     if (!emailSent) {
-      logger.warn({ email }, '[EMAIL OTP] Email delivery failed — no provider available');
-      return reply.status(503).send({ error: 'Email delivery unavailable. Please try again later.' });
+      logger.warn({ email }, '[EMAIL OTP] Email delivery failed');
+      return reply.status(503).send({ error: 'Email delivery unavailable. Please try SMS OTP or try again later.' });
     }
 
     return { message: 'OTP sent to your email' };
@@ -527,19 +511,6 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(429).send({ error: 'Too many verification attempts. Please try again in 15 minutes.' });
     }
 
-    // Try Supabase verify first
-    if (supabaseAdmin) {
-      const { data, error } = await supabaseAdmin.auth.verifyOtp({ email, token: otp, type: 'email' });
-      if (!error && data?.user) {
-        const customer = await upsertCustomerFromSupabase(data.user, { name });
-        const tokens = await generateTokenPair(customer.id, 'customer');
-        setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
-        return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: 'customer' } };
-      }
-      logger.warn({ err: error?.message }, '[EMAIL VERIFY] Supabase verify failed, falling back to local verify');
-    }
-
-    // Fallback: local OTP verify
     const key = `email:${email}`;
     const stored = await getOtp(key);
     if (!stored || !safeOtpCompare(stored.otp, otp)) {
