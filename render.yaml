@@ -44,6 +44,8 @@ services:
         sync: false
       - key: ENABLE_DEV_BYPASS
         value: "false"
+      - key: ADMIN_EMAILS
+        value: "shivakulakarni4@gmail.com,admin@kitchen.app"
       - key: LOG_LEVEL
         value: info
       - key: KITCHEN_LAT
