@@ -149,6 +149,12 @@ export async function authRoutes(app: FastifyInstance) {
     if (body === null) return;
     const { email, phone, name, password, otp } = body;
 
+    const ip = request.ip;
+    if (!(await checkAuthRateLimit(ip, LOGIN_RATE_LIMIT))) {
+      logger.warn({ ip }, '[AUTH] Rate limit exceeded on register');
+      return reply.status(429).send({ error: 'Too many requests. Please try again later.' });
+    }
+
     // If Supabase is configured, use Supabase Auth
     if (supabaseAdmin) {
       // Phone + OTP registration via Supabase — fall through to local on failure

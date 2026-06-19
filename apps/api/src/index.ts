@@ -203,6 +203,11 @@ async function main() {
   const allowedOrigins: (string | RegExp)[] = [
     ...envOrigins, ...localhostOrigins, ...productionOrigins,
   ];
+
+  if (isProduction && allowedOrigins.length === 0) {
+    app.log.warn('[CORS] No allowed origins configured! Set CORS_ORIGINS or APP_URL.');
+  }
+
   await app.register(cors, {
     origin: (origin, cb) => {
       // Always enforce CORS — no environment bypass
