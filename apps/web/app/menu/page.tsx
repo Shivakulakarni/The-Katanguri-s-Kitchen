@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Image from 'next/image';
+import { motion } from 'framer-motion';
 import { useRealtimeEvent } from '@/lib/useRealtime';
 import { useCartStore } from '../lib/cart-store';
 import { getDishImage, FALLBACK_DISH_IMAGE } from '../lib/dish-images';
@@ -251,9 +252,14 @@ export default function MenuPage() {
           </div>
         ) : (
           filtered.map((dish, i) => (
-            <div key={dish.id} className="card" style={{
-              display: 'flex', animation: `fadeInUp 0.4s ease ${Math.min(i * 0.05, 0.5)}s forwards`, opacity: 0
-            }}>
+            <motion.div
+              key={dish.id}
+              className="card"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: Math.min(i * 0.05, 0.5), duration: 0.3 }}
+              style={{ display: 'flex' }}
+            >
               <div style={{
                 width: 120, height: 140, minWidth: 120,
                 position: 'relative', overflow: 'hidden'
@@ -295,7 +301,7 @@ export default function MenuPage() {
                   + Add
                 </button>
               </div>
-            </div>
+            </motion.div>
           ))
         )}
       </div>

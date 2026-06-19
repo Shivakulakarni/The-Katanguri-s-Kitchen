@@ -52,7 +52,7 @@ function TrackPageInner() {
         headers: { 'Content-Type': 'application/json' },
       });
       if (res.ok) {
-        window.location.reload();
+        toast.success('Order Cancelled', 'Your order has been cancelled successfully');
       } else {
         const data = await res.json();
         toast.error('Cancel failed', data.error || 'Failed to cancel order');
