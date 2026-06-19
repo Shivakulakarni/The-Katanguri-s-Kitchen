@@ -1,0 +1,2 @@
+ALTER TABLE "customer_favorites" ADD CONSTRAINT "customer_favorites_dish_id_dishes_id_fk" FOREIGN KEY ("dish_id") REFERENCES "public"."dishes"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "idx_customer_favorites_unique" ON "customer_favorites" USING btree ("customer_id","dish_id");
