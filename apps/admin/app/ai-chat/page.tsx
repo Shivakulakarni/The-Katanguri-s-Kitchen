@@ -29,12 +29,17 @@ export default function AIChatPage() {
   const [loadingInsights, setLoadingInsights] = useState(true);
   const [chatLoading, setChatLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const hasSentMessage = useRef(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    const container = chatContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
+  };
 
   useEffect(() => {
-    if (hasSentMessage.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    scrollToBottom();
   }, [messages, chatLoading]);
 
   useEffect(() => {
@@ -61,7 +66,6 @@ export default function AIChatPage() {
     if (!text.trim()) return;
 
     if (!textToSend) setMessage('');
-    hasSentMessage.current = true;
     const newMessages = [...messages, { role: 'user' as const, content: text }];
     setMessages(newMessages);
     setChatLoading(true);
@@ -100,6 +104,7 @@ export default function AIChatPage() {
       gap: '24px',
       color: '#e5e7eb',
       fontFamily: '"Outfit", system-ui, -apple-system, sans-serif',
+      overflow: 'hidden',
     }}>
       {/* Left Column: Operational Insights */}
       <div style={{
@@ -198,7 +203,7 @@ export default function AIChatPage() {
         </div>
 
         {/* Chat messages */}
-        <div style={{
+        <div ref={chatContainerRef} style={{
           flex: 1,
           padding: '24px',
           overflowY: 'auto',
@@ -265,7 +270,6 @@ export default function AIChatPage() {
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Suggestion Chips */}
