@@ -491,12 +491,9 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (!emailSent) {
       logger.warn({ email, dev_otp: otp }, `[EMAIL OTP] Email delivery failed — OTP is ${otp}`);
-      return {
-        message: 'Email delivery unavailable. Please use SMS OTP instead.',
-        emailFailed: true,
-        _dev_otp: otp,
-        otp: otp,
-      };
+      return reply.status(503).send({
+        error: 'Email delivery unavailable. Please try SMS OTP or try again later.',
+      });
     }
 
     return { message: 'OTP sent to your email' };
