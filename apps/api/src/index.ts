@@ -1,5 +1,14 @@
 import 'dotenv/config';
 import http from 'http';
+
+// ── IMMEDIATE PORT OPEN — before ANY other imports — so Render sees port open ──
+const BOOT_PORT = parseInt(process.env.PORT || '3001');
+const bootstrapServer = http.createServer((_req, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ status: 'ok', bootstrapping: true }));
+});
+bootstrapServer.listen(BOOT_PORT, '0.0.0.0');
+
 import './tracing.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -92,19 +101,6 @@ async function main() {
   } catch (err: any) {
     console.error('[WS] WebSocket polyfill failed:', err.message);
   }
-
-  // ── Immediate HTTP listener for Render health checks (port opens immediately) ──
-  const bootstrapServer = http.createServer((req, res) => {
-    if (req.url === '/api/v1/health') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'ok', bootstrapping: true }));
-    } else {
-      res.writeHead(503, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ status: 'loading', message: 'Server is starting up' }));
-    }
-  });
-  bootstrapServer.listen(PORT, '0.0.0.0');
-  console.log(`[Bootstrap] Port ${PORT} is open — health checks will pass`);
 
   const app = Fastify({
     logger: {
