@@ -63,7 +63,7 @@ async function request<T = any>(path: string, opts: ApiOptions = {}): Promise<T>
     'X-Request-Id': requestId,
     ...((fetchOpts.headers as Record<string, string>) || {}),
   };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (token && token !== 'cookie-auth') headers['Authorization'] = `Bearer ${token}`;
 
   const doFetch = async (): Promise<T> => {
     const controller = new AbortController();
