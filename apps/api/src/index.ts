@@ -688,6 +688,22 @@ async function main() {
       } catch (err: any) {
         logger.warn({ err: err.message }, '[Startup] Test data cleanup skipped');
       }
+
+      // Auto-seed production data if restaurant_config is empty
+      try {
+        const { queryClient } = await import('./db/connection.js');
+        const configCheck = await queryClient`SELECT 1 FROM restaurant_config LIMIT 1`;
+        if (configCheck.length === 0) {
+          logger.info('[Startup] restaurant_config empty — running production seed...');
+          const { seedProductionData } = await import('./modules/config/productionSeed.js');
+          const result = await seedProductionData();
+          logger.info({ summary: result.summary }, '[Startup] Production seed complete');
+        } else {
+          logger.info('[Startup] restaurant_config already populated — skipping seed');
+        }
+      } catch (err: any) {
+        logger.warn({ err: err.message }, '[Startup] Auto-seed skipped');
+      }
     }
 
     await app.listen({ port: PORT, host: '0.0.0.0' });
