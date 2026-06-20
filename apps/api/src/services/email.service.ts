@@ -6,27 +6,88 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-const FROM_EMAIL_DEFAULT = 'The Katanguri\'s Kitchen <onboarding@resend.dev>';
-
-function getFromEmail(): string {
-  const configured = process.env.RESEND_FROM_EMAIL || '';
-  if (!configured) return FROM_EMAIL_DEFAULT;
-  return configured;
-}
 const APP_NAME = 'The Katanguri\'s Kitchen';
 const APP_URL = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
 
+// ── SendGrid Provider (primary — uses REST API, no SDK needed) ──
+async function sendViaSendGrid(options: { to: string; subject: string; html: string }): Promise<boolean> {
+  const apiKey = process.env.SENDGRID_API_KEY || '';
+  if (!apiKey) return false;
+
+  try {
+    const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: options.to }] }],
+        from: { email: process.env.SENDGRID_FROM_EMAIL || 'orders@thekatanguriskitchen.com', name: APP_NAME },
+        subject: options.subject,
+        content: [{ type: 'text/html', value: options.html }],
+      }),
+    });
+
+    if (res.ok || res.status === 202) {
+      logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Sent via SendGrid');
+      return true;
+    }
+
+    const body = await res.text();
+    logger.warn({ to: options.to, status: res.status, body }, '[EMAIL] SendGrid error');
+    return false;
+  } catch (err: any) {
+    logger.warn({ err: err.message, to: options.to }, '[EMAIL] SendGrid failed');
+    return false;
+  }
+}
+
+// ── Resend Provider (fallback) ──
 let _resend: Resend | null = null;
 function getResend(): Resend | null {
   if (_resend) return _resend;
   const key = process.env.RESEND_API_KEY || '';
-  if (!key) {
-    logger.warn('[EMAIL] RESEND_API_KEY not set — emails will not be sent');
-    return null;
-  }
+  if (!key) return null;
   _resend = new Resend(key);
   logger.info('[EMAIL] Resend initialized');
   return _resend;
+}
+
+async function sendViaResend(options: { to: string; subject: string; html: string }): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  try {
+    const from = process.env.RESEND_FROM_EMAIL || `"${APP_NAME}" <onboarding@resend.dev>`;
+    const { error } = await resend.emails.send({
+      from,
+      to: [options.to],
+      subject: options.subject,
+      html: options.html,
+    });
+    if (error) {
+      logger.warn({ err: error, to: options.to }, '[EMAIL] Resend error');
+      return false;
+    }
+    logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Sent via Resend');
+    return true;
+  } catch (err: any) {
+    logger.warn({ err: err.message, to: options.to }, '[EMAIL] Resend failed');
+    return false;
+  }
+}
+
+// ── Unified send with provider cascade ──
+async function send(options: { to: string; subject: string; html: string }): Promise<boolean> {
+  // Try SendGrid first (user has real API key + verified domain)
+  if (await sendViaSendGrid(options)) return true;
+
+  // Fallback to Resend
+  if (await sendViaResend(options)) return true;
+
+  logger.warn({ to: options.to, subject: options.subject }, '[EMAIL] All providers failed');
+  return false;
 }
 
 function baseTemplate(title: string, content: string): string {
@@ -49,45 +110,6 @@ function baseTemplate(title: string, content: string): string {
   </div>
 </body>
 </html>`;
-}
-
-async function sendWithFrom(resend: any, from: string, options: { to: string; subject: string; html: string }): Promise<boolean> {
-  try {
-    const { error } = await resend.emails.send({
-      from,
-      to: [options.to],
-      subject: options.subject,
-      html: options.html,
-    });
-    if (error) {
-      logger.warn({ err: error, to: options.to, from }, '[EMAIL] Resend error');
-      return false;
-    }
-    logger.info({ to: options.to, subject: options.subject, from }, '[EMAIL] Sent via Resend');
-    return true;
-  } catch (err: any) {
-    logger.warn({ err: err.message, to: options.to, from }, '[EMAIL] Failed');
-    return false;
-  }
-}
-
-async function send(options: { to: string; subject: string; html: string }): Promise<boolean> {
-  const resend = getResend();
-  if (!resend) {
-    logger.warn({ to: options.to, subject: options.subject }, '[EMAIL] Skipped — no provider configured');
-    return false;
-  }
-
-  const configuredFrom = getFromEmail();
-  const ok = await sendWithFrom(resend, configuredFrom, options);
-  if (ok) return true;
-
-  const fallbackFrom = FROM_EMAIL_DEFAULT;
-  if (configuredFrom !== fallbackFrom) {
-    logger.warn({ configured: configuredFrom, fallback: fallbackFrom }, '[EMAIL] Retrying with fallback FROM address');
-    return sendWithFrom(resend, fallbackFrom, options);
-  }
-  return false;
 }
 
 export async function sendOTP(email: string, otp: string, purpose: string = 'verification'): Promise<boolean> {
