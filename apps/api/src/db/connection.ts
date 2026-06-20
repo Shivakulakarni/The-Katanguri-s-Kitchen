@@ -40,6 +40,48 @@ checkDatabaseHealth().then((ok) => {
   else dbLogger.warn('[DB] Initial health check failed — will retry via pool');
 });
 
+// Run startup migrations for tables that may not exist yet
+runStartupMigrations().catch((err) => {
+  dbLogger.error({ err: err.message }, '[DB] Startup migration failed');
+});
+
+async function runStartupMigrations() {
+  try {
+    await queryClient`
+      CREATE TABLE IF NOT EXISTS "customer_favorites" (
+        "id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+        "customer_id" integer NOT NULL REFERENCES "customers"("id"),
+        "dish_id" integer NOT NULL REFERENCES "dishes"("id"),
+        "created_at" timestamp DEFAULT now()
+      )
+    `;
+    await queryClient`CREATE INDEX IF NOT EXISTS "idx_customer_favorites_customer" ON "customer_favorites" USING btree ("customer_id")`;
+    await queryClient`CREATE INDEX IF NOT EXISTS "idx_customer_favorites_customer_dish" ON "customer_favorites" USING btree ("customer_id","dish_id")`;
+    await queryClient`CREATE UNIQUE INDEX IF NOT EXISTS "idx_customer_favorites_unique" ON "customer_favorites" USING btree ("customer_id","dish_id")`;
+    dbLogger.info('[DB] Startup migration: customer_favorites table ready');
+  } catch (err: any) {
+    dbLogger.error({ err: err.message }, '[DB] customer_favorites migration failed');
+  }
+
+  try {
+    await queryClient`
+      CREATE TABLE IF NOT EXISTS "feedback_analysis" (
+        "id" integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+        "feedback_id" integer NOT NULL,
+        "sentiment" text NOT NULL,
+        "score" text NOT NULL,
+        "themes" jsonb,
+        "summary" text,
+        "suggested_action" text,
+        "analyzed_at" timestamp DEFAULT now()
+      )
+    `;
+    dbLogger.info('[DB] Startup migration: feedback_analysis table ready');
+  } catch (err: any) {
+    dbLogger.error({ err: err.message }, '[DB] feedback_analysis migration failed');
+  }
+}
+
 const pool = queryClient;
 export { pool as queryClient };
 
