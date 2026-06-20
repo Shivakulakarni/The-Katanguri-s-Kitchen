@@ -8,6 +8,56 @@ export async function seedProductionData(): Promise<{ success: boolean; summary:
   const summary: string[] = [];
 
   // ═══════════════════════════════════════════
+  // 0. ENSURE TABLES EXIST (create if missing)
+  // ═══════════════════════════════════════════
+  await queryClient`
+    CREATE TABLE IF NOT EXISTS restaurant_config (
+      id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      key text NOT NULL UNIQUE,
+      value jsonb NOT NULL,
+      created_at timestamp DEFAULT now(),
+      updated_at timestamp DEFAULT now()
+    )
+  `;
+  await queryClient`
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      code text NOT NULL UNIQUE,
+      type text NOT NULL DEFAULT 'percentage',
+      value double precision NOT NULL,
+      min_order_amount double precision DEFAULT 0,
+      max_uses integer DEFAULT 0,
+      current_uses integer DEFAULT 0,
+      expires_at timestamp,
+      is_active boolean NOT NULL DEFAULT true,
+      created_at timestamp DEFAULT now() NOT NULL
+    )
+  `;
+  await queryClient`
+    CREATE TABLE IF NOT EXISTS riders (
+      id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+      name text NOT NULL,
+      phone text NOT NULL UNIQUE,
+      email text,
+      vehicle_type text NOT NULL DEFAULT 'bike',
+      vehicle_number text,
+      status text NOT NULL DEFAULT 'offline',
+      is_verified boolean DEFAULT false,
+      is_active boolean DEFAULT true,
+      current_lat decimal(10,7),
+      current_lng decimal(10,7),
+      rating decimal(3,2) DEFAULT '5.00',
+      total_deliveries integer DEFAULT 0,
+      total_earnings decimal(12,2) DEFAULT '0',
+      current_order_id integer,
+      deleted_at timestamp,
+      created_at timestamp DEFAULT now(),
+      updated_at timestamp DEFAULT now()
+    )
+  `;
+  summary.push('tables ensured');
+
+  // ═══════════════════════════════════════════
   // 1. RESTAURANT CONFIG
   // ═══════════════════════════════════════════
   const configs: Array<{ key: string; value: any }> = [
