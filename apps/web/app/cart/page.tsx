@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useCartStore } from '../lib/cart-store';
-import { FALLBACK_DISH_IMAGE } from '../lib/dish-images';
 
 function formatPrice(price: number) {
   return '₹' + price.toLocaleString('en-IN');
@@ -40,13 +39,16 @@ export default function CartPage() {
                   display: 'flex', alignItems: 'center', gap: 12, padding: 12, flexWrap: 'wrap',
                   animation: `fadeInUp 0.3s ease ${i * 0.04}s forwards`, opacity: 0,
                 }}>
-                  <div style={{ width: 64, height: 64, borderRadius: 'var(--rounded-xl)', background: 'var(--surface-soft)', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                    <img
-                      src={item.image || FALLBACK_DISH_IMAGE}
-                      alt={item.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={e => { (e.target as HTMLImageElement).src = FALLBACK_DISH_IMAGE; }}
-                    />
+                  <div style={{ width: 64, height: 64, borderRadius: 'var(--rounded-xl)', background: 'var(--surface-soft)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {item.image ? (
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        onError={e => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.removeAttribute('hidden'); }}
+                      />
+                    ) : null}
+                    <span hidden={!item.image} style={{ fontSize: 28 }}>🍽️</span>
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>

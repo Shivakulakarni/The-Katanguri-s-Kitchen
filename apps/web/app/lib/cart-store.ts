@@ -33,7 +33,7 @@ export const useCartStore = create<CartState>()(
           if (existing) {
             return {
               items: state.items.map(i =>
-                i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+                i.id === item.id ? { ...i, quantity: i.quantity + 1, image: item.image || i.image } : i
               ),
             };
           }
@@ -45,9 +45,7 @@ export const useCartStore = create<CartState>()(
         set((state) => ({
           items: state.items.filter(i => i.id !== id),
         }));
-        // Clear special instructions for removed item
         try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy import to avoid circular dependency
           const { useSpecialInstructions } = require('./useSpecialInstructions');
           useSpecialInstructions.getState().clearInstruction(id);
         } catch { /* instructions store may not be loaded */ }
@@ -67,9 +65,7 @@ export const useCartStore = create<CartState>()(
 
       clearCart: () => {
         set({ items: [] });
-        // Clear all special instructions
         try {
-          // eslint-disable-next-line @typescript-eslint/no-require-imports -- lazy import to avoid circular dependency
           const { useSpecialInstructions } = require('./useSpecialInstructions');
           useSpecialInstructions.getState().clearAll();
         } catch { /* instructions store may not be loaded */ }
@@ -89,18 +85,28 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: 'kitchen-cart',
-      version: 1,
+      version: 2,
       migrate: (persistedState: any, version: number) => {
+        let state = persistedState;
         if (version === 0) {
-          return {
-            ...persistedState,
-            items: (persistedState.items || []).map((item: any) => ({
+          state = {
+            ...state,
+            items: (state.items || []).map((item: any) => ({
               ...item,
               modifiers: item.modifiers || [],
             })),
           };
         }
-        return persistedState;
+        if (version < 2) {
+          state = {
+            ...state,
+            items: (state.items || []).map((item: any) => ({
+              ...item,
+              image: item.image && typeof item.image === 'string' && item.image.length > 5 ? item.image : '',
+            })),
+          };
+        }
+        return state;
       },
     }
   )
