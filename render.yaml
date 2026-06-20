@@ -5,7 +5,8 @@ services:
     runtime: node
     plan: free
     buildCommand: |
-      rm -rf apps/api/dist
+      rm -rf apps/api/dist node_modules
+      npm cache clean --force
       npm install --include=dev
       npm run build -w packages/shared
       npm run build -w apps/api
