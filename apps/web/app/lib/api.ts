@@ -11,6 +11,7 @@ import {
   withRetry,
   type RetryOptions,
 } from './errors';
+import { useAuthStore } from './auth-store';
 
 interface ApiOptions extends RequestInit {
   token?: string;
@@ -33,12 +34,8 @@ async function tryRefreshToken(): Promise<boolean> {
   if (refreshPromise) return refreshPromise;
   refreshPromise = (async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      return res.ok;
+      const success = await useAuthStore.getState().refreshTokens();
+      return success;
     } catch {
       return false;
     } finally {
@@ -63,7 +60,7 @@ async function request<T = any>(path: string, opts: ApiOptions = {}): Promise<T>
     'X-Request-Id': requestId,
     ...((fetchOpts.headers as Record<string, string>) || {}),
   };
-  if (token && token !== 'cookie-auth') headers['Authorization'] = `Bearer ${token}`;
+  if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const doFetch = async (): Promise<T> => {
     const controller = new AbortController();
@@ -82,13 +79,14 @@ async function request<T = any>(path: string, opts: ApiOptions = {}): Promise<T>
       if (res.status === 401 && !path.includes('/auth/') && token) {
         const refreshed = await tryRefreshToken();
         if (refreshed) {
-          // New controller + timeout for the retry
+          const newToken = localStorage.getItem('tkn_access') || token;
+          const retryHeaders = { ...headers, Authorization: `Bearer ${newToken}` };
           const retryController = new AbortController();
           const retryTimeoutId = setTimeout(() => retryController.abort(), timeout);
           try {
             const retryRes = await fetch(`${API_BASE}${path}`, {
               ...fetchOpts,
-              headers,
+              headers: retryHeaders,
               credentials: 'include',
               signal: retryController.signal,
             });

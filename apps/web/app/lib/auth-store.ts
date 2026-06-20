@@ -17,7 +17,6 @@ interface AuthState {
   token: string | null;
   refreshToken: string | null;
   isLoading: boolean;
-  /** Whether a token refresh is currently in progress */
   _refreshing: boolean;
   setAuth: (user: User, token: string, refreshToken?: string) => void;
   logout: () => void;
@@ -27,11 +26,13 @@ interface AuthState {
   requestOtp: (phone: string) => Promise<{ error?: string }>;
   verifyOtp: (phone: string, otp: string, name?: string) => Promise<{ error?: string }>;
   refreshTokens: () => Promise<boolean>;
-  /** Check if token is expired and refresh if needed */
   ensureValidToken: () => Promise<string | null>;
 }
 
-/** Decode JWT payload without verification (client-side only, for expiry check) */
+const TOKEN_KEY = 'tkn_access';
+const REFRESH_KEY = 'tkn_refresh';
+const USER_KEY = 'tkn_user';
+
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
     const base64 = token.split('.')[1];
@@ -50,6 +51,35 @@ function isTokenExpired(token: string, bufferSeconds = 60): boolean {
   return Date.now() >= expiresAt - bufferSeconds * 1000;
 }
 
+function persistAuth(user: User, token: string, refreshToken?: string) {
+  try {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(TOKEN_KEY, token);
+    if (refreshToken) localStorage.setItem(REFRESH_KEY, refreshToken);
+  } catch {}
+}
+
+function clearPersistedAuth() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(USER_KEY);
+  } catch {}
+}
+
+function loadPersistedAuth(): { user: User | null; token: string | null; refreshToken: string | null } {
+  try {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const refreshToken = localStorage.getItem(REFRESH_KEY);
+    const userStr = localStorage.getItem(USER_KEY);
+    if (!token || !userStr) return { user: null, token: null, refreshToken: null };
+    const user = JSON.parse(userStr) as User;
+    return { user, token, refreshToken };
+  } catch {
+    return { user: null, token: null, refreshToken: null };
+  }
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: null,
@@ -58,47 +88,58 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   _refreshing: false,
 
   setAuth: (user, token, refreshToken?: string) => {
+    persistAuth(user, token, refreshToken);
     set({ user, token, refreshToken: refreshToken || null, isLoading: false });
   },
 
   logout: async () => {
+    const cur = get();
     try {
-      await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch {
-      // ignore network errors on logout
-    }
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        headers: cur.token ? { Authorization: `Bearer ${cur.token}` } : {},
+        credentials: 'include',
+      });
+    } catch {}
     try {
       const supabase = createBrowserClient();
       if (supabase) await supabase.auth.signOut();
-    } catch {
-      // ignore supabase signout errors
-    }
+    } catch {}
+    clearPersistedAuth();
     set({ user: null, token: null, refreshToken: null, isLoading: false });
   },
 
   loadFromStorage: async () => {
-    try {
-      const res = await fetch('/api/v1/customer/profile', { credentials: 'include' });
-      if (res.ok) {
-        const profileData = await res.json();
-        const customer = profileData.customer || profileData;
-        if (customer && customer.id) {
-          set({
-            user: {
-              id: customer.id,
-              email: customer.email || '',
-              name: customer.name || '',
-              phone: customer.phone || '',
-              role: customer.role || 'customer',
-            },
-            token: 'cookie-auth',
-            isLoading: false,
-          });
-          return;
-        }
+    const persisted = loadPersistedAuth();
+    if (persisted.token && persisted.user) {
+      if (!isTokenExpired(persisted.token)) {
+        set({ ...persisted, isLoading: false });
+        return;
       }
-    } catch {
-      // Not authenticated — fall through
+      if (persisted.refreshToken) {
+        set({ _refreshing: true });
+        try {
+          const res = await fetch('/api/v1/auth/refresh', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ refreshToken: persisted.refreshToken }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.accessToken) {
+              const refreshedUser = data.user || persisted.user;
+              persistAuth(refreshedUser, data.accessToken, data.refreshToken || persisted.refreshToken);
+              set({ user: refreshedUser, token: data.accessToken, refreshToken: data.refreshToken || persisted.refreshToken, isLoading: false, _refreshing: false });
+              return;
+            }
+          }
+        } catch {}
+        set({ _refreshing: false });
+      }
+      clearPersistedAuth();
+      set({ isLoading: false });
+      return;
     }
     set({ isLoading: false });
   },
@@ -187,7 +228,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refreshTokens: async () => {
     const cur = get();
-    if (!cur.refreshToken || cur._refreshing) return false;
+    const refreshToken = cur.refreshToken || loadPersistedAuth().refreshToken;
+    if (!refreshToken || cur._refreshing) return false;
 
     set({ _refreshing: true });
     try {
@@ -195,24 +237,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ refreshToken: cur.refreshToken }),
+        body: JSON.stringify({ refreshToken }),
       });
       if (!res.ok) {
-        get().logout();
+        clearPersistedAuth();
+        set({ user: null, token: null, refreshToken: null, _refreshing: false });
         return false;
       }
       const data = await res.json();
       if (data.accessToken) {
-        get().setAuth(data.user || cur.user!, data.accessToken, data.refreshToken || cur.refreshToken);
+        const user = data.user || cur.user!;
+        persistAuth(user, data.accessToken, data.refreshToken || refreshToken);
+        set({ user, token: data.accessToken, refreshToken: data.refreshToken || refreshToken, _refreshing: false });
         return true;
       }
-      get().logout();
+      clearPersistedAuth();
+      set({ user: null, token: null, refreshToken: null, _refreshing: false });
       return false;
     } catch (err: unknown) {
       reportError(ensureAppError(err), { action: 'refreshTokens' });
-      return false;
-    } finally {
       set({ _refreshing: false });
+      return false;
     }
   },
 
