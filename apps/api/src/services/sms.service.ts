@@ -5,7 +5,10 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
 
-const isTwilioConfigured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER);
+const isPlaceholder = (v: string) => !v || v.includes('CHANGE_ME') || v.includes('YOUR_PROJECT') || v === 'null';
+
+const hasRealCreds = !isPlaceholder(TWILIO_ACCOUNT_SID) && !isPlaceholder(TWILIO_AUTH_TOKEN) && !isPlaceholder(TWILIO_PHONE_NUMBER);
+const isTwilioConfigured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER && hasRealCreds);
 
 let twilioClient: twilio.Twilio | null = null;
 if (isTwilioConfigured) {
@@ -53,7 +56,7 @@ export async function sendSMS(
     return { success: true, provider: 'twilio', sid: result.sid };
   } catch (err: any) {
     logger.error({ err: err.message, to: recipient, code: err.code }, '[SMS] Failed to send');
-    return { success: false, error: 'SMS delivery failed', provider: 'twilio' };
+    return { success: false, error: err.message || 'SMS delivery failed', provider: 'twilio' };
   }
 }
 

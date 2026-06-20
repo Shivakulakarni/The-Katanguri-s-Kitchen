@@ -115,7 +115,7 @@ function AuthForm() {
           setDevOtp(data.otp);
         }
         if (data.smsFailed) {
-          setError(`SMS delivery failed: ${data.error}. Check terminal for OTP.`);
+          setError(`SMS temporarily unavailable: ${data.error}. Please try email login or come back later.`);
         } else {
           setSuccess('OTP sent to your phone!');
         }
