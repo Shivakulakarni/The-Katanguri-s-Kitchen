@@ -5,6 +5,7 @@ services:
     runtime: node
     plan: free
     buildCommand: |
+      rm -rf apps/api/dist
       npm install --include=dev
       npm run build -w packages/shared
       npm run build -w apps/api
