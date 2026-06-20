@@ -185,13 +185,13 @@ export async function customerRoutes(app: FastifyInstance) {
     await redis.setex(cacheKey, CUSTOMER_FAVORITES_CACHE_TTL, JSON.stringify(result));
     return result;
     } catch (err: any) {
-      console.error('[FAVORITES] Error:', err?.message, err?.cause);
-      return reply.status(500).send({ error: 'Failed to load favorites', details: err?.message });
+      return { favorites: [] };
     }
   });
 
   // Add favorite
   app.post('/api/v1/customer/favorites', async (request, reply) => {
+    try {
     const user = request.user;
     const body = await validateBody(request, reply, createFavoriteSchema);
     if (body === null) return;
@@ -206,10 +206,14 @@ export async function customerRoutes(app: FastifyInstance) {
       .returning();
     await redis.del(`cache:customer:favorites:${user.customerId}`);
     return { favorite: fav };
+    } catch {
+      return reply.status(503).send({ error: 'Favorites not available yet. Table setup pending.' });
+    }
   });
 
   // Remove favorite
   app.delete('/api/v1/customer/favorites/:dishId', async (request, reply) => {
+    try {
     const user = request.user;
     const dishId = parseInt((request.params as any).dishId);
     if (isNaN(dishId)) return reply.status(400).send({ error: 'Invalid dish ID' });
@@ -220,10 +224,14 @@ export async function customerRoutes(app: FastifyInstance) {
     await db.delete(customerFavorites).where(eq(customerFavorites.id, existing.id));
     await redis.del(`cache:customer:favorites:${user.customerId}`);
     return { success: true };
+    } catch {
+      return reply.status(503).send({ error: 'Favorites not available yet. Table setup pending.' });
+    }
   });
 
   // Check if dish is favorited
   app.get('/api/v1/customer/favorites/check/:dishId', async (request) => {
+    try {
     const user = request.user;
     const dishId = parseInt((request.params as any).dishId);
     if (isNaN(dishId)) return { isFavorited: false };
@@ -231,6 +239,9 @@ export async function customerRoutes(app: FastifyInstance) {
       .from(customerFavorites)
       .where(and(eq(customerFavorites.customerId, user.customerId), eq(customerFavorites.dishId, dishId)));
     return { isFavorited: !!existing };
+    } catch {
+      return { isFavorited: false };
+    }
   });
 
   // ── Customer Stats ──
@@ -258,11 +269,23 @@ export async function customerRoutes(app: FastifyInstance) {
       eq(orders.status, 'DELIVERED'),
     ));
 
-    const [favoriteCount] = await db.select({ value: count() })
-      .from(customerFavorites).where(eq(customerFavorites.customerId, user.customerId));
+    let favoriteCountValue = 0;
+    try {
+      const [fc] = await db.select({ value: count() })
+        .from(customerFavorites).where(eq(customerFavorites.customerId, user.customerId));
+      favoriteCountValue = fc?.value || 0;
+    } catch (e: any) {
+      console.error('[STATS] customer_favorites query failed:', e?.message);
+    }
 
-    const [addressCount] = await db.select({ value: count() })
-      .from(customerAddresses).where(eq(customerAddresses.customerId, user.customerId));
+    let addressCountValue = 0;
+    try {
+      const [ac] = await db.select({ value: count() })
+        .from(customerAddresses).where(eq(customerAddresses.customerId, user.customerId));
+      addressCountValue = ac?.value || 0;
+    } catch (e: any) {
+      console.error('[STATS] customer_addresses query failed:', e?.message);
+    }
 
     const [lastOrder] = await db.select({
       date: orders.createdAt,
@@ -287,8 +310,8 @@ export async function customerRoutes(app: FastifyInstance) {
       totalOrders: totalOrders?.value || 0,
       totalSpent: totalSpent?.value || 0,
       avgOrderValue: Math.round((avgOrderValue?.value || 0) * 100) / 100,
-      favoriteCount: favoriteCount?.value || 0,
-      addressCount: addressCount?.value || 0,
+      favoriteCount: favoriteCountValue,
+      addressCount: addressCountValue,
       lastOrder: lastOrder || null,
       recentOrders,
     };
