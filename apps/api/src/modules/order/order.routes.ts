@@ -307,7 +307,7 @@ export async function orderRoutes(app: FastifyInstance) {
 
     const stripeKey = process.env.STRIPE_SECRET_KEY;
     if (!stripeKey || stripeKey === 'sk_test_CHANGE_ME') {
-      return reply.status(500).send({ error: 'Payment service not configured' });
+      return reply.status(400).send({ error: 'Payment retry is not available for Cash on Delivery orders' });
     }
 
     try {

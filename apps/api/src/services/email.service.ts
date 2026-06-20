@@ -1,4 +1,3 @@
-import { Resend } from 'resend';
 import { logger } from '../utils/logger.js';
 
 function escapeHtml(str: string): string {
@@ -6,22 +5,50 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-const FROM_EMAIL = 'The Katanguri\'s Kitchen <onboarding@resend.dev>';
-const REPLY_TO_EMAIL = process.env.RESEND_REPLY_TO_EMAIL || '';
 const APP_NAME = 'The Katanguri\'s Kitchen';
 const APP_URL = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
 
-let _resend: Resend | null = null;
-function getResend(): Resend | null {
-  if (_resend) return _resend;
-  const key = process.env.RESEND_API_KEY || '';
-  if (!key) {
-    logger.warn('[EMAIL] RESEND_API_KEY not set — emails will not be sent');
-    return null;
+function getFromEmail(): string {
+  return process.env.SENDGRID_FROM_EMAIL || 'orders@thekatanguriskitchen.com';
+}
+
+async function sendGridSend(to: string, subject: string, html: string, text?: string): Promise<boolean> {
+  const apiKey = process.env.SENDGRID_API_KEY || '';
+  if (!apiKey) {
+    logger.warn('[EMAIL] SENDGRID_API_KEY not set — emails will not be sent');
+    return false;
   }
-  _resend = new Resend(key);
-  logger.info('[EMAIL] Resend initialized');
-  return _resend;
+
+  try {
+    const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email: to }] }],
+        from: { email: getFromEmail(), name: APP_NAME },
+        subject,
+        content: [
+          { type: 'text/html', value: html },
+          ...(text ? [{ type: 'text/plain', value: text }] : []),
+        ],
+      }),
+    });
+
+    if (res.ok) {
+      logger.info({ to, subject }, '[EMAIL] Sent via SendGrid');
+      return true;
+    }
+
+    const body = await res.text();
+    logger.error({ to, subject, status: res.status, body }, '[EMAIL] SendGrid error');
+    return false;
+  } catch (err: any) {
+    logger.error({ err: err.message, to, subject }, '[EMAIL] SendGrid failed');
+    return false;
+  }
 }
 
 function baseTemplate(title: string, content: string): string {
@@ -32,7 +59,6 @@ function baseTemplate(title: string, content: string): string {
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:12px;overflow:hidden;margin-top:20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
     <div style="background:linear-gradient(135deg,#e23744,#c62828);padding:24px 32px;text-align:center;">
-      <img src="${APP_URL}/logo.avif" alt="${APP_NAME}" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.4);margin-bottom:12px;" />
       <h1 style="color:#fff;font-size:22px;margin:0;font-weight:700;">${APP_NAME}</h1>
     </div>
     <div style="padding:32px;">
@@ -41,53 +67,12 @@ function baseTemplate(title: string, content: string): string {
     </div>
     <div style="background:#f8f8f8;padding:20px 32px;text-align:center;border-top:1px solid #eee;">
       <p style="color:#999;font-size:12px;margin:0;">© ${new Date().getFullYear()} ${APP_NAME}. All rights reserved.</p>
-      <p style="color:#999;font-size:11px;margin:4px 0 0;">
-        <a href="${APP_URL}/account" style="color:#e23744;text-decoration:none;">Manage Preferences</a> ·
-        <a href="${APP_URL}/account" style="color:#999;text-decoration:none;">Unsubscribe</a>
-      </p>
     </div>
   </div>
 </body>
 </html>`;
 }
 
-export interface SendEmailOptions {
-  to: string;
-  subject: string;
-  html: string;
-  text?: string;
-}
-
-async function send(options: SendEmailOptions): Promise<boolean> {
-  const resend = getResend();
-  if (!resend) {
-    logger.warn({ to: options.to, subject: options.subject }, '[EMAIL] Skipped — no provider configured');
-    return false;
-  }
-
-  try {
-    const payload: any = {
-      from: FROM_EMAIL,
-      to: [options.to],
-      subject: options.subject,
-      html: options.html,
-    };
-    if (REPLY_TO_EMAIL) payload.reply_to = REPLY_TO_EMAIL;
-
-    const { error } = await resend.emails.send(payload);
-    if (error) {
-      logger.error({ err: error, to: options.to }, '[EMAIL] Resend error');
-      return false;
-    }
-    logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Sent via Resend');
-    return true;
-  } catch (err: any) {
-    logger.error({ err: err.message, to: options.to }, '[EMAIL] Failed');
-    return false;
-  }
-}
-
-// ── OTP Email ──
 export async function sendOTP(email: string, otp: string, purpose: string = 'verification'): Promise<boolean> {
   const html = baseTemplate('Your Verification Code', `
     <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Use the code below to complete your ${purpose}.</p>
@@ -99,10 +84,9 @@ export async function sendOTP(email: string, otp: string, purpose: string = 'ver
     <p style="color:#999;font-size:13px;text-align:center;">This code expires in 10 minutes. Do not share it with anyone.</p>
   `);
 
-  return send({ to: email, subject: `Your ${purpose} Code — ${APP_NAME}`, html });
+  return sendGridSend(email, `Your ${purpose} Code — ${APP_NAME}`, html);
 }
 
-// ── Order Confirmation ──
 export async function sendOrderConfirmation(email: string, orderId: number, items: { name: string; qty: number; price: number }[], totalAmount: number): Promise<boolean> {
   const itemRows = items.map(i =>
     `<tr><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;color:#333;">${escapeHtml(i.name)}</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:center;color:#666;">x${i.qty}</td><td style="padding:8px 0;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600;">₹${i.price * i.qty}</td></tr>`
@@ -124,10 +108,9 @@ export async function sendOrderConfirmation(email: string, orderId: number, item
     <p style="color:#999;font-size:13px;text-align:center;">Estimated delivery: 30 minutes</p>
   `);
 
-  return send({ to: email, subject: `Order #${orderId} Confirmed — ${APP_NAME}`, html });
+  return sendGridSend(email, `Order #${orderId} Confirmed — ${APP_NAME}`, html);
 }
 
-// ── Out for Delivery ──
 export async function sendOutForDelivery(email: string, orderId: number): Promise<boolean> {
   const html = baseTemplate('Your Order is On the Way!', `
     <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Great news! Your order has left the kitchen and is heading your way.</p>
@@ -137,10 +120,9 @@ export async function sendOutForDelivery(email: string, orderId: number): Promis
     <p style="color:#999;font-size:13px;text-align:center;">Your delivery partner will reach you shortly.</p>
   `);
 
-  return send({ to: email, subject: `Order #${orderId} Out for Delivery — ${APP_NAME}`, html });
+  return sendGridSend(email, `Order #${orderId} Out for Delivery — ${APP_NAME}`, html);
 }
 
-// ── Feedback Request ──
 export async function sendFeedbackRequest(email: string, orderId: number): Promise<boolean> {
   const html = baseTemplate('How Was Your Meal?', `
     <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">We hope you enjoyed your food! Your feedback helps us serve you better.</p>
@@ -150,44 +132,31 @@ export async function sendFeedbackRequest(email: string, orderId: number): Promi
     <p style="color:#999;font-size:13px;text-align:center;">It takes just 30 seconds and means the world to us.</p>
   `);
 
-  return send({ to: email, subject: `How was Order #${orderId}? — ${APP_NAME}`, html });
+  return sendGridSend(email, `How was Order #${orderId}? — ${APP_NAME}`, html);
 }
 
-// ── Abandoned Cart ──
-export async function sendAbandonedCart(email: string, cartSummary: string): Promise<boolean> {
+export async function sendAbandonedCart(email: string, _cartSummary: string): Promise<boolean> {
   const html = baseTemplate('You Left Items in Your Cart!', `
-    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Don't miss out! Your favorites are waiting. Complete your order now and get <strong style="color:#e23744;">10% OFF</strong>.</p>
-    <div style="background:#fff5f5;border-radius:10px;padding:20px;margin-bottom:20px;text-align:center;">
-      <div style="font-size:14px;color:#666;margin-bottom:8px;">${escapeHtml(cartSummary)}</div>
-      <div style="font-size:24px;font-weight:700;color:#e23744;">10% OFF</div>
-      <div style="font-size:12px;color:#999;margin-top:4px;">Use code: COMEBACK10</div>
-    </div>
+    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Don't miss out! Your favorites are waiting. Complete your order now.</p>
     <div style="text-align:center;">
       <a href="${APP_URL}/cart" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Complete Order</a>
     </div>
   `);
 
-  return send({ to: email, subject: `Complete Your Order — 10% Off — ${APP_NAME}`, html });
+  return sendGridSend(email, `Complete Your Order — ${APP_NAME}`, html);
 }
 
-// ── Re-engagement ──
 export async function sendReEngagement(email: string, name: string): Promise<boolean> {
   const html = baseTemplate(`We Miss You, ${escapeHtml(name)}!`, `
-    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">It's been a while since your last order. We've got something special for you — <strong style="color:#e23744;">15% OFF</strong> your next order!</p>
-    <div style="background:#fff5f5;border-radius:10px;padding:24px;margin-bottom:20px;text-align:center;">
-      <div style="font-size:14px;color:#999;margin-bottom:8px;">Your exclusive code</div>
-      <div style="font-size:28px;font-weight:700;color:#e23744;letter-spacing:2px;">WELCOME15</div>
-      <div style="font-size:12px;color:#999;margin-top:4px;">Valid for 7 days</div>
-    </div>
+    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">It's been a while since your last order. Come back and enjoy our food!</p>
     <div style="text-align:center;">
       <a href="${APP_URL}/menu" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Order Now</a>
     </div>
   `);
 
-  return send({ to: email, subject: `15% Off — We Miss You! — ${APP_NAME}`, html });
+  return sendGridSend(email, `We Miss You! — ${APP_NAME}`, html);
 }
 
-// ── Admin Alert ──
 export async function sendAdminAlert(emails: string[], subject: string, body: string): Promise<boolean> {
   const html = baseTemplate('System Alert', `
     <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:20px;margin-bottom:16px;">
@@ -198,13 +167,12 @@ export async function sendAdminAlert(emails: string[], subject: string, body: st
 
   let allSuccess = true;
   for (const email of emails) {
-    const ok = await send({ to: email, subject: `[ALERT] ${subject}`, html });
+    const ok = await sendGridSend(email, `[ALERT] ${subject}`, html);
     if (!ok) allSuccess = false;
   }
   return allSuccess;
 }
 
-// ── Contact Form Email ──
 export async function sendContactForm(name: string, email: string, subject: string, message: string): Promise<boolean> {
   const adminEmail = process.env.CONTACT_FORM_EMAIL || process.env.ADMIN_EMAIL || 'admin@thekatanguriskitchen.com';
   const html = baseTemplate('New Contact Form Submission', `
@@ -218,5 +186,5 @@ export async function sendContactForm(name: string, email: string, subject: stri
     </div>
   `);
 
-  return send({ to: adminEmail, subject: `Contact Form: ${escapeHtml(subject) || 'No subject'} — ${APP_NAME}`, html });
+  return sendGridSend(adminEmail, `Contact Form: ${escapeHtml(subject) || 'No subject'} — ${APP_NAME}`, html);
 }

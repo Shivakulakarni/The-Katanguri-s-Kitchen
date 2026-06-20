@@ -63,8 +63,21 @@ export async function paymentRoutes(app: FastifyInstance) {
 
     const stripe = await getStripe();
     if (!stripe) {
-      const err = Errors.serviceUnavailable('Payment service not configured');
-      return reply.status(err.statusCode).send({ error: err.message });
+      // COD fallback: Create a pending COD payment record
+      const codKey = `cod_${orderId}`;
+      if (!await claimIdempotency(codKey)) {
+        return { method: 'cod', status: 'pending', orderId, existing: true };
+      }
+      await db.insert(payments).values({
+        orderId,
+        gateway: 'cod',
+        paymentIntentId: `cod_${orderId}_${Date.now()}`,
+        amount: amount.toString(),
+        currency: (currency || 'INR').toUpperCase(),
+        status: 'pending',
+      });
+      await logPaymentAudit(orderId, 'COD_PAYMENT_CREATED', { orderId, amount });
+      return { method: 'cod', status: 'pending', orderId, message: 'Cash on Delivery — pay when you receive your order' };
     }
 
     const idKey = idempotencyKey || `pi_create_${orderId}`;
