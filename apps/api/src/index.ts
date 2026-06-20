@@ -377,6 +377,7 @@ async function main() {
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - serverStartTime) / 1000),
       version: '1.0.0',
+      commit: 'd70ad2c',
       environment: process.env.NODE_ENV || 'development',
       checks,
     });
