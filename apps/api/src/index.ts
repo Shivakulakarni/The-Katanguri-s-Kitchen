@@ -1,4 +1,11 @@
 import 'dotenv/config';
+
+// Polyfill WebSocket for Node.js 20 (required by @supabase/realtime-js)
+import { WebSocket } from 'ws';
+if (typeof globalThis.WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = WebSocket;
+}
+
 import './tracing.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
