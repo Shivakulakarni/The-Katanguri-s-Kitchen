@@ -161,7 +161,6 @@ export default function AIChatbot() {
             }
           }
         } else {
-          setMessages([...newMessages, { role: 'assistant', content: "I'd love to tell you about our signature Hyderabadi Biryani! It uses the dum pukht method, sealed with dough to trap every aromatic note. Want to try it?" }]);
         }
         setIsLoading(false);
         return;

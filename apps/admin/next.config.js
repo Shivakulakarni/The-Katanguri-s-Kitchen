@@ -6,6 +6,13 @@ const nextConfig = {
   output: process.env.VERCEL ? undefined : 'standalone',
   basePath: process.env.VERCEL ? undefined : '/admin',
   transpilePackages: ['@kitchen/shared'],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.supabase.co' },
+      { protocol: 'https', hostname: '*.supabase.in' },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+    ],
+  },
   experimental: {
     instrumentationHook: true,
   },

@@ -21,9 +21,8 @@ export async function register() {
 
     try {
       sdk.start();
-      console.log('[OTel] Web Tracing SDK started successfully');
-    } catch (err: any) {
-      console.error('[OTel] Failed to start Web Tracing SDK:', err.message);
+    } catch {
+      // OTel is optional — silently ignore if unavailable
     }
   }
 }
