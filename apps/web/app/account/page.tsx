@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import { api } from '../lib/api';
 import Link from 'next/link';
 import { useAuthStore } from '../lib/auth-store';
@@ -334,10 +333,10 @@ export default function AccountPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: 16 }}>
                   {favorites.map(fav => (
                     <div key={fav.id} className="card" style={{ display: 'flex', overflow: 'hidden', position: 'relative' }}>
-                      <div style={{ width: 100, height: 100, position: 'relative', flexShrink: 0 }}>
-                        <Image src={getDishImage(fav.dishName, fav.dishImageUrl)}
-                          alt={fav.dishName} fill sizes="100px"
-                          style={{ objectFit: 'cover' }}
+                      <div style={{ width: 100, height: 100, flexShrink: 0, overflow: 'hidden' }}>
+                        <img src={getDishImage(fav.dishName, fav.dishImageUrl)}
+                          alt={fav.dishName}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           onError={e => { const img = e.target as HTMLImageElement; if (img.src !== FALLBACK_DISH_IMAGE) img.src = FALLBACK_DISH_IMAGE; }} />
                       </div>
                       <div style={{ flex: 1, padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>

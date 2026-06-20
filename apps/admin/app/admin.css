@@ -206,3 +206,19 @@ tr:hover td {
 .animate {
   animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Admin page content scroll */
+.admin-page {
+  overflow-y: auto;
+  height: 100%;
+  min-height: 0;
+  scrollbar-width: thin;
+}
+
+.admin-page::-webkit-scrollbar {
+  width: 4px;
+}
+.admin-page::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}

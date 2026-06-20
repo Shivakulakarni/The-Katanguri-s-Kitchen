@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useRealtimeEvent } from '@/lib/useRealtime';
 import { useCartStore } from '../lib/cart-store';
@@ -326,11 +325,9 @@ export default function MenuPage() {
                 width: 120, height: 140, minWidth: 120,
                 position: 'relative', overflow: 'hidden'
               }}>
-                <Image src={getDishImage(dish.name, dish.imageUrl, dish.category?.name)}
+                <img src={getDishImage(dish.name, dish.imageUrl, dish.category?.name)}
                   alt={dish.name}
-                  fill
-                  sizes="120px"
-                  style={{ objectFit: 'cover' }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   onError={e => { const img = e.target as HTMLImageElement; if (img.src !== FALLBACK_DISH_IMAGE) img.src = FALLBACK_DISH_IMAGE; }} />
                 <span className={`tag ${dish.isVeg ? 'tag-veg' : 'tag-nonveg'}`}
                   style={{ position: 'absolute', top: 8, left: 8, fontSize: 9, padding: '2px 7px', zIndex: 1 }}>

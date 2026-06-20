@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { getDishImage, FALLBACK_DISH_IMAGE } from '../lib/dish-images';
 import { useAuthStore } from '../lib/auth-store';
@@ -109,7 +108,7 @@ export function Recommendations() {
               {rec.reason}
             </div>
             <div style={{ position: 'relative', height: 180, borderRadius: '12px 12px 0 0', overflow: 'hidden' }}>
-              <Image src={getDishImage(rec.dishName, rec.imageUrl, rec.categoryName)} alt={rec.dishName} fill sizes="260px" style={{ objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).src = FALLBACK_DISH_IMAGE; }} />
+              <img src={getDishImage(rec.dishName, rec.imageUrl, rec.categoryName)} alt={rec.dishName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { const img = e.target as HTMLImageElement; if (img.src !== FALLBACK_DISH_IMAGE) img.src = FALLBACK_DISH_IMAGE; }} />
               <span className={`tag ${rec.isVeg ? 'tag-veg' : 'tag-nonveg'}`} style={{ position: 'absolute', top: 12, left: 12 }}>
                 {rec.isVeg ? 'VEG' : 'NON-VEG'}
               </span>

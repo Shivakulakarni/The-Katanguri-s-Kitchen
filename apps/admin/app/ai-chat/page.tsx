@@ -44,28 +44,11 @@ export default function AIChatPage() {
   useEffect(() => {
     const mainEl = document.querySelector('main.admin-main') as HTMLElement;
     if (mainEl) {
-      const originalOverflow = mainEl.style.overflow;
-      const originalPadding = mainEl.style.padding;
-      const originalHeight = mainEl.style.height;
-      const originalBg = mainEl.style.backgroundColor;
-      
-      const checkAndStyleMain = () => {
-        const mobile = window.matchMedia('(max-width: 768px)').matches;
-        mainEl.style.overflow = 'hidden';
-        mainEl.style.padding = mobile ? '12px' : '16px';
-        mainEl.style.height = mobile ? 'calc(100vh - 56px)' : '100vh';
-        mainEl.style.backgroundColor = '#0b0f19';
-      };
-      
-      checkAndStyleMain();
-      window.addEventListener('resize', checkAndStyleMain);
-      
+      mainEl.style.overflow = 'hidden';
+      mainEl.style.height = '100vh';
       return () => {
-        window.removeEventListener('resize', checkAndStyleMain);
-        mainEl.style.overflow = originalOverflow;
-        mainEl.style.padding = originalPadding;
-        mainEl.style.height = originalHeight;
-        mainEl.style.backgroundColor = originalBg;
+        mainEl.style.overflow = '';
+        mainEl.style.height = '';
       };
     }
   }, []);
@@ -138,13 +121,15 @@ export default function AIChatPage() {
   return (
     <div style={{
       display: 'grid',
-      gridTemplateColumns: isMobile ? '1fr' : '320px 1fr',
-      gridTemplateRows: isMobile ? 'auto 1fr' : 'none',
+      gridTemplateColumns: isMobile ? '1fr' : '280px 1fr',
+      gridTemplateRows: '1fr',
       height: '100%',
-      gap: isMobile ? '12px' : '24px',
+      gap: isMobile ? '12px' : '16px',
       color: '#e5e7eb',
       fontFamily: '"Outfit", system-ui, -apple-system, sans-serif',
       overflow: 'hidden',
+      padding: isMobile ? '8px' : '16px',
+      boxSizing: 'border-box',
     }}>
       {/* Left Column: Operational Insights */}
       <div className="admin-insights-panel">
@@ -192,7 +177,7 @@ export default function AIChatPage() {
       </div>
 
       {/* Right Column: Chat console */}
-      <div className="admin-chat-panel" style={{ height: 'calc(100vh - 100px)' }}>
+      <div className="admin-chat-panel" style={{ height: '100%', minHeight: 0 }}>
         {/* Chat Header */}
         <div className="admin-chat-header">
           <span style={{ fontSize: '24px' }}>💬</span>

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useCartStore } from '../lib/cart-store';
+import { FALLBACK_DISH_IMAGE } from '../lib/dish-images';
 
 function formatPrice(price: number) {
   return '₹' + price.toLocaleString('en-IN');
@@ -41,11 +41,12 @@ export default function CartPage() {
                   animation: `fadeInUp 0.3s ease ${i * 0.04}s forwards`, opacity: 0,
                 }}>
                   <div style={{ width: 64, height: 64, borderRadius: 'var(--rounded-xl)', background: 'var(--surface-soft)', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
-                    {item.image && item.image.startsWith('http') ? (
-                      <Image src={item.image} alt={item.name} fill sizes="64px" style={{ objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>{item.image || '🍽️'}</div>
-                    )}
+                    <img
+                      src={item.image || FALLBACK_DISH_IMAGE}
+                      alt={item.name}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => { (e.target as HTMLImageElement).src = FALLBACK_DISH_IMAGE; }}
+                    />
                   </div>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>

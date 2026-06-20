@@ -88,9 +88,8 @@ const SidebarHeader = styled('div', {
   marginBottom: '$8',
   fontWeight: '$bold',
   letterSpacing: '0.5px',
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
+  whiteSpace: 'normal',
+  wordBreak: 'break-word',
   textAlign: 'center',
   variants: {
     collapsed: {
@@ -98,6 +97,9 @@ const SidebarHeader = styled('div', {
         fontSize: '$5',
         justifyContent: 'center',
         padding: '0',
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
       },
       false: {
         fontSize: '$4',
@@ -163,7 +165,10 @@ const Main = styled('main', {
   flex: 1,
   padding: '$5',
   backgroundColor: '$surface',
-  overflowY: 'auto',
+  overflow: 'hidden',
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100vh',
 });
 
 const navItems = [
