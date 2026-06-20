@@ -63,9 +63,10 @@ export default function CheckoutPage() {
     api.get('/api/v1/customer/addresses', token || undefined)
       .then(res => {
         if (cancelled) return;
-        if (Array.isArray(res)) {
-          setSavedAddresses(res);
-          const def = res.find((a: any) => a.isDefault);
+        const list = Array.isArray(res) ? res : (res?.addresses || []);
+        if (list.length > 0) {
+          setSavedAddresses(list);
+          const def = list.find((a: any) => a.isDefault);
           if (def) {
             setSelectedAddressId(def.id);
             setAddress({ line: def.addressLine1, city: def.city, pincode: def.pincode });
@@ -110,8 +111,9 @@ export default function CheckoutPage() {
             pincode: address.pincode,
             label: 'Home',
           }, token ?? undefined);
-          if (res && res.id) {
-            addressId = res.id;
+          if (res) {
+            const newAddr = res.address || res;
+            addressId = newAddr.id;
           }
         } catch {
           toast.warning('Address save failed', 'Your address was not saved but the order will continue');

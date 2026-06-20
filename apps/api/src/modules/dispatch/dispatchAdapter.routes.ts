@@ -29,8 +29,22 @@ export async function dispatchAdapterRoutes(app: FastifyInstance) {
   // Get current dispatch provider info
   app.get('/api/v1/admin/dispatch/provider', async (_request, reply) => {
     try {
-      const adapter = createDispatchAdapter();
       const providerName = process.env.DISPATCH_PROVIDER || '';
+      if (!providerName) {
+        return {
+          provider: 'none',
+          configured: '',
+          status: 'not_configured',
+          env: {
+            DISPATCH_PROVIDER: '(not set)',
+            DISPATCH_API_URL: process.env.DISPATCH_API_URL ? '✓ Set' : '✗ Not set',
+            DUNZO_API_KEY: process.env.DUNZO_API_KEY ? '✓ Set' : '✗ Not set',
+            PORTER_API_KEY: process.env.PORTER_API_KEY ? '✓ Set' : '✗ Not set',
+            SHADOWFAX_API_KEY: process.env.SHADOWFAX_API_KEY ? '✓ Set' : '✗ Not set',
+          },
+        };
+      }
+      const adapter = createDispatchAdapter();
       return {
         provider: adapter.provider,
         configured: providerName,

@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { Check } from 'lucide-react';
 import { toast } from '../lib/toast-store';
 import { useCartStore } from '../lib/cart-store';
+import { useAuthStore } from '../lib/auth-store';
 
 function formatPrice(price: number) {
   return '₹' + price.toLocaleString('en-IN');
@@ -28,6 +29,7 @@ const statusLabels: Record<string, { label: string; icon: string; desc: string }
 function TrackPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { token } = useAuthStore();
   const orderIdStr = searchParams?.get('id') ?? null;
   const orderIdRaw = orderIdStr ? parseInt(orderIdStr) : null;
   const orderId = orderIdRaw !== null && !isNaN(orderIdRaw) ? orderIdRaw : null;
@@ -49,7 +51,10 @@ function TrackPageInner() {
       const res = await fetch(`/api/v1/orders/${orderId}/cancel`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       if (res.ok) {
         toast.success('Order Cancelled', 'Your order has been cancelled successfully');
@@ -62,7 +67,7 @@ function TrackPageInner() {
     } finally {
       setCancelling(false);
     }
-  }, [orderId]);
+  }, [orderId, token]);
 
   useEffect(() => {
     if (!orderId || !showMap) return;
@@ -110,7 +115,7 @@ function TrackPageInner() {
     );
   }
 
-  const items = orderData?.items || [];
+  const items = orderData?.order?.items || orderData?.items || [];
 
   const activeIdx = statusList.indexOf(currentStatus);
   const isCancelled = currentStatus === 'CANCELLED';

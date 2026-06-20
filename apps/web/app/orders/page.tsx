@@ -122,9 +122,10 @@ export default function MyOrdersPage() {
   const handleReorder = useCallback(async (orderId: number) => {
     try {
       const data = await api.get(`/api/v1/orders/${orderId}`, token || undefined);
-      if (data?.items?.length) {
+      const orderItems = data?.order?.items || data?.items || [];
+      if (orderItems.length) {
         const { addItem } = useCartStore.getState();
-        for (const item of data.items) {
+        for (const item of orderItems) {
           addItem({
             id: item.dishId,
             name: item.dishName || `Dish #${item.dishId}`,
@@ -134,7 +135,7 @@ export default function MyOrdersPage() {
             modifiers: item.modifiers || [],
           });
         }
-        toast.success('Added to cart', `${data.items.length} item(s) added from Order #${orderId}`);
+        toast.success('Added to cart', `${orderItems.length} item(s) added from Order #${orderId}`);
       }
     } catch {
       toast.error('Reorder failed', 'Could not load order details');
