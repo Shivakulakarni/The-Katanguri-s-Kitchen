@@ -13,7 +13,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const h = getAuthHeaders();
-    fetch('/api/v1/admin/config', { headers: h }).then(r => r.json()).then(data => { setSettings(data || {}); setLoading(false); }).catch(() => setLoading(false));
+    fetch('/api/v1/admin/config', { headers: h }).then(r => r.json()).then(data => { setSettings(data?.config || data || {}); setLoading(false); }).catch(() => setLoading(false));
   }, []);
 
   const updateSetting = async (key: string, value: any) => {

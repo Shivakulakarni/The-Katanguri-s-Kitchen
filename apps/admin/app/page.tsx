@@ -27,7 +27,7 @@ export default function AdminDashboard() {
       fetch('/api/v1/admin/orders?limit=10', { headers: h }).then(r => r.ok ? r.json() : []),
       fetch('/api/v1/admin/orders/stats', { headers: h }).then(r => r.ok ? r.json() : null),
     ]).then(([orderData, statsData]) => {
-      const orderList = Array.isArray(orderData) ? orderData : orderData?.orders || [];
+      const orderList = Array.isArray(orderData) ? orderData : orderData?.data || orderData?.orders || [];
       setAllOrders(orderList);
       setOrders(orderList.slice(0, 10).map((o: any) => ({
         id: `#${o.id}`, items: o.notes || `Order #${o.id}`,

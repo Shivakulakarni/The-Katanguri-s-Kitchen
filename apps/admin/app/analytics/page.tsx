@@ -146,8 +146,8 @@ export default function AnalyticsPage() {
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
                 { period: 'Today', revenue: stats.revenueToday || 0, orders: stats.totalToday || 0 },
-                { period: 'This Week', revenue: stats.revenueWeek || 0, orders: stats.totalWeek || 0 },
-                { period: 'This Month', revenue: stats.revenueMonth || 0, orders: stats.totalMonth || 0 },
+                { period: 'Delivered', revenue: 0, orders: stats.delivered || 0 },
+                { period: 'Cancelled', revenue: 0, orders: stats.cancelled || 0 },
               ]}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
                 <XAxis dataKey="period" tick={{ fill: '#94a3b8', fontSize: 12 }} />

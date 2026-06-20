@@ -25,7 +25,7 @@ export function useAuthHeaders(): Record<string, string> {
 export function getAuthHeaders(): Record<string, string> {
   const token = useAdminAuthStore.getState().token;
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (token && token !== 'cookie-auth') {
+  if (token && token !== 'cookie-auth' && token !== 'cookie-session') {
     headers['Authorization'] = 'Bearer ' + token;
   }
   return headers;

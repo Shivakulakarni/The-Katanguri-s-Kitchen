@@ -86,7 +86,7 @@ export default function AdminLoginPage() {
         setLoading(false);
         return;
       }
-      setAuth(data.user, data.accessToken || data.token);
+      setAuth(data.user, data.accessToken || data.token, data.refreshToken);
       router.push('/');
     } catch (err: any) {
       setError(err.message || 'Verification failed');

@@ -19,8 +19,8 @@ export default function InventoryPage() {
       fetch('/api/v1/admin/inventory', { headers: h }).then(r => r.json()),
       fetch('/api/v1/admin/inventory/transactions?limit=10', { headers: h }).then(r => r.json()),
     ]).then(([invData, txData]) => {
-      setIngredients(invData.ingredients || []);
-      setTransactions(txData.transactions || []);
+      setIngredients(Array.isArray(invData) ? invData : invData?.data || []);
+      setTransactions(Array.isArray(txData) ? txData : txData?.data || []);
       setLoading(false);
     }).catch(() => setLoading(false));
   }, []);
@@ -33,7 +33,7 @@ export default function InventoryPage() {
       setShowForm(false);
       setNewItem({ name: '', category: '', unit: 'kg', stock: 0, minStock: 10, costPerUnit: 0 });
       const data = await fetch('/api/v1/admin/inventory', { headers: h2 }).then(r => r.json());
-      setIngredients(data.ingredients || []);
+      setIngredients(Array.isArray(data) ? data : data?.data || []);
     } catch (err: any) { toast.error('Add failed', err.message || 'Failed to add ingredient'); }
   };
 
@@ -43,9 +43,9 @@ export default function InventoryPage() {
       const res = await fetch(`/api/v1/admin/inventory/${id}/stock`, { method: 'PATCH', headers: h2, body: JSON.stringify({ delta }) });
       if (!res.ok) throw new Error('Failed to update stock');
       const data = await fetch('/api/v1/admin/inventory', { headers: h2 }).then(r => r.json());
-      setIngredients(data.ingredients || []);
+      setIngredients(Array.isArray(data) ? data : data?.data || []);
       const txData = await fetch('/api/v1/admin/inventory/transactions?limit=10', { headers: h2 }).then(r => r.json());
-      setTransactions(txData.transactions || []);
+      setTransactions(Array.isArray(txData) ? txData : txData?.data || []);
     } catch (err: any) { toast.error('Update failed', err.message || 'Failed to update stock'); }
   };
 

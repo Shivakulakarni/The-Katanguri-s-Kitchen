@@ -13,39 +13,83 @@ interface AdminUser {
 interface AdminAuthState {
   user: AdminUser | null;
   token: string | null;
+  refreshToken: string | null;
   isLoading: boolean;
-  setAuth: (user: AdminUser, token: string) => void;
+  setAuth: (user: AdminUser, token: string, refreshToken?: string) => void;
   logout: () => void;
   loadFromStorage: () => void;
   login: (email: string, password: string) => Promise<{ error?: string }>;
 }
 
+const ADMIN_TOKEN_KEY = 'admin_tkn';
+const ADMIN_REFRESH_KEY = 'admin_rtkn';
+const ADMIN_USER_KEY = 'admin_usr';
+
+function persistAdmin(user: AdminUser, token: string, refreshToken?: string) {
+  try {
+    localStorage.setItem(ADMIN_TOKEN_KEY, token);
+    localStorage.setItem(ADMIN_USER_KEY, JSON.stringify(user));
+    if (refreshToken) localStorage.setItem(ADMIN_REFRESH_KEY, refreshToken);
+  } catch {}
+}
+
+function clearAdmin() {
+  try {
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
+    localStorage.removeItem(ADMIN_REFRESH_KEY);
+    localStorage.removeItem(ADMIN_USER_KEY);
+  } catch {}
+}
+
+function loadAdmin(): { user: AdminUser | null; token: string | null; refreshToken: string | null } {
+  try {
+    const token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    const refreshToken = localStorage.getItem(ADMIN_REFRESH_KEY);
+    const userStr = localStorage.getItem(ADMIN_USER_KEY);
+    if (!token || !userStr) return { user: null, token: null, refreshToken: null };
+    return { user: JSON.parse(userStr), token, refreshToken };
+  } catch {
+    return { user: null, token: null, refreshToken: null };
+  }
+}
+
 export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
   user: null,
   token: null,
+  refreshToken: null,
   isLoading: true,
 
-  setAuth: (user, token) => {
-    set({ user, token, isLoading: false });
+  setAuth: (user, token, refreshToken?: string) => {
+    persistAdmin(user, token, refreshToken);
+    set({ user, token, refreshToken: refreshToken || null, isLoading: false });
   },
 
   logout: async () => {
     try {
       if (supabase) await supabase.auth.signOut();
-      await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
-    } catch {
-      // ignore network errors on logout
-    }
-    set({ user: null, token: null, isLoading: false });
+      const cur = get();
+      await fetch('/api/v1/auth/logout', {
+        method: 'POST',
+        headers: cur.token ? { Authorization: `Bearer ${cur.token}` } : {},
+        credentials: 'include',
+      });
+    } catch {}
+    clearAdmin();
+    set({ user: null, token: null, refreshToken: null, isLoading: false });
   },
 
   loadFromStorage: async () => {
+    const persisted = loadAdmin();
+    if (persisted.token && persisted.user) {
+      set({ ...persisted, isLoading: false });
+      return;
+    }
+
+    // Fallback: check Supabase session
     try {
-      // Check Supabase session first (for Google OAuth)
       if (supabase) {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
-          // Exchange Supabase session for our admin cookie
           const res = await fetch('/api/v1/auth/social', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -59,37 +103,19 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
           if (res.ok) {
             const data = await res.json();
             if (data.user?.role === 'admin') {
-              set({
-                user: { id: data.user.id, email: data.user.email, name: data.user.name, role: data.user.role },
-                token: data.accessToken || data.token || session.access_token,
-                isLoading: false,
-              });
+              const user = { id: data.user.id, email: data.user.email, name: data.user.name, role: data.user.role };
+              const token = data.accessToken || data.token || session.access_token;
+              persistAdmin(user, token, data.refreshToken);
+              set({ user, token, refreshToken: data.refreshToken || null, isLoading: false });
               return;
             } else {
-              // Not an admin — sign out from Supabase
               await supabase.auth.signOut();
             }
           }
         }
       }
+    } catch {}
 
-      // Fallback: check cookie-based session
-      const res = await fetch('/api/v1/customer/profile', { credentials: 'include' });
-      if (res.ok) {
-        const profileData = await res.json();
-        const c = profileData?.customer || profileData;
-        if (c && c.id && c.role === 'admin') {
-          set({
-            user: { id: c.id, email: c.email || '', name: c.name || '', role: c.role || 'customer' },
-            token: 'cookie-session',
-            isLoading: false,
-          });
-          return;
-        }
-      }
-    } catch {
-      // Not authenticated — fall through
-    }
     set({ isLoading: false });
   },
 
@@ -103,7 +129,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
       });
       const data = await res.json();
       if (data.error) return { error: data.error };
-      const authToken = data.token || data.accessToken;
+      const authToken = data.accessToken || data.token;
       if (!authToken) {
         return { error: 'Login failed — no authentication token received' };
       }
@@ -111,7 +137,7 @@ export const useAdminAuthStore = create<AdminAuthState>((set, get) => ({
       if (!userRole || userRole !== 'admin') {
         return { error: 'Admin access required. Your account does not have admin privileges.' };
       }
-      get().setAuth(data.user, authToken);
+      get().setAuth(data.user, authToken, data.refreshToken);
       return {};
     } catch (err: any) {
       return { error: err.message || 'Login failed' };
