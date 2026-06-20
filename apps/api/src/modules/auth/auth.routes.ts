@@ -143,6 +143,24 @@ async function upsertCustomerFromSupabase(supabaseUser: any, extra?: { phone?: s
 }
 
 export async function authRoutes(app: FastifyInstance) {
+  // ── Public Auth Status (no auth required — for debugging) ──
+  app.get('/api/v1/auth/status', async () => {
+    const hasSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_URL.includes('CHANGE_ME'));
+    const hasResend = !!(process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('CHANGE_ME'));
+    const hasSendGrid = !!(process.env.SENDGRID_API_KEY && !process.env.SENDGRID_API_KEY.includes('CHANGE_ME'));
+    const hasTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER && !process.env.TWILIO_ACCOUNT_SID.includes('CHANGE_ME'));
+    return {
+      providers: {
+        supabase: hasSupabase ? 'configured' : 'not configured',
+        email: hasSendGrid ? 'sendgrid' : hasResend ? 'resend' : 'not configured',
+        sms: hasTwilio ? 'twilio' : hasSupabase ? 'supabase' : 'not configured',
+        google: hasSupabase ? 'configured' : 'not configured',
+      },
+      demo_bypass: process.env.NODE_ENV !== 'production' ? 'enabled' : 'disabled',
+      environment: process.env.NODE_ENV || 'development',
+    };
+  });
+
   // ── Register (phone-based with optional OTP) ──
   app.post('/api/v1/auth/register', async (request, reply) => {
     const body = await validateBody(request, reply, registerSchema);
