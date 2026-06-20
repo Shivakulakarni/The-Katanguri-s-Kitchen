@@ -1,11 +1,4 @@
 import 'dotenv/config';
-
-// Polyfill WebSocket for Node.js 20 (required by @supabase/realtime-js)
-import { WebSocket } from 'ws';
-if (typeof globalThis.WebSocket === 'undefined') {
-  (globalThis as any).WebSocket = WebSocket;
-}
-
 import './tracing.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -89,6 +82,16 @@ const serverStartTime = Date.now();
 let isShuttingDown = false;
 
 async function main() {
+  // Polyfill WebSocket for Node.js 20 (required by @supabase/realtime-js)
+  try {
+    const { WebSocket } = await import('ws');
+    if (typeof globalThis.WebSocket === 'undefined') {
+      (globalThis as any).WebSocket = WebSocket;
+    }
+  } catch (err: any) {
+    console.error('[WS] WebSocket polyfill failed:', err.message);
+  }
+
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug'),
@@ -640,4 +643,8 @@ async function main() {
   }
 }
 
-main();
+main().catch((err) => {
+  console.error('[FATAL] Server startup failed:', err?.message || err);
+  console.error(err?.stack);
+  process.exit(1);
+});
