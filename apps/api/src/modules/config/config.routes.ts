@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
 import { redis } from '../../utils/redis.js';
 import { auditLog, diffChanges } from '../../utils/audit.js';
+import { seedProductionData } from './productionSeed.js';
 
 const CONFIG_KEY = 'admin:config';
 const DEFAULT_CONFIG: Record<string, string> = {
@@ -36,12 +37,45 @@ async function saveConfig(config: Record<string, string>): Promise<void> {
 }
 
 export async function configRoutes(app: FastifyInstance) {
-  app.addHook('onRequest', authenticate);
-  app.addHook('onRequest', requireAdmin);
+  // ── PUBLIC: Restaurant config (no auth required) ──
+  app.get('/api/v1/config/restaurant', async (_request, reply) => {
+    try {
+      const { queryClient } = await import('../../db/connection.js');
+      const rows = await queryClient`SELECT key, value FROM restaurant_config`;
+      const config: Record<string, any> = {};
+      for (const row of rows) {
+        config[row.key] = row.value;
+      }
+      if (Object.keys(config).length === 0) {
+        return reply.send({ ...DEFAULT_CONFIG });
+      }
+      return reply.send(config);
+    } catch {
+      return reply.send(DEFAULT_CONFIG);
+    }
+  });
 
-  app.get('/api/v1/admin/config', async () => {
+  // ── ADMIN: Seed production data (auth + admin required) ──
+  app.post('/api/v1/admin/seed-production', { preHandler: [authenticate, requireAdmin] }, async (request, reply) => {
+    try {
+      const result = await seedProductionData();
+      await auditLog({
+        entityType: 'config',
+        entityId: 1,
+        action: 'update',
+        changes: { seeded: true, summary: result.summary },
+        ctx: { userId: request.user?.customerId, userRole: request.user?.role },
+      });
+      return reply.send({ success: true, summary: result.summary });
+    } catch (err: any) {
+      request.log.error({ err: err.message }, '[Seed] Production seed failed');
+      return reply.status(500).send({ error: 'Seed failed', details: err.message });
+    }
+  });
+
+  // ── ADMIN: Config CRUD (auth + admin required) ──
+  app.get('/api/v1/admin/config', { preHandler: [authenticate, requireAdmin] }, async () => {
     const cfg = await loadConfig();
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured to exclude from response
     const { webhookSecret: _excluded, ...safeConfig } = cfg;
     return { config: safeConfig };
   });
@@ -50,7 +84,6 @@ export async function configRoutes(app: FastifyInstance) {
     const body = request.body as Record<string, string>;
     const current = await loadConfig();
     
-    // Prevent overwriting sensitive fields
     const protectedFields = ['webhookSecret'];
     const sanitizedBody = { ...body };
     for (const field of protectedFields) {
@@ -71,6 +104,6 @@ export async function configRoutes(app: FastifyInstance) {
     return { config: updated, message: 'Config saved' };
   }
 
-  app.put('/api/v1/admin/config', handleConfigUpdate);
-  app.patch('/api/v1/admin/config', handleConfigUpdate);
+  app.put('/api/v1/admin/config', { preHandler: [authenticate, requireAdmin] }, handleConfigUpdate);
+  app.patch('/api/v1/admin/config', { preHandler: [authenticate, requireAdmin] }, handleConfigUpdate);
 }
