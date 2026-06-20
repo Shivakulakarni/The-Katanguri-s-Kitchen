@@ -7,10 +7,11 @@ function escapeHtml(str: string): string {
 }
 
 const FROM_EMAIL_DEFAULT = 'The Katanguri\'s Kitchen <onboarding@resend.dev>';
-const FROM_EMAIL_VERIFIED = process.env.RESEND_FROM_EMAIL || '';
 
 function getFromEmail(): string {
-  return FROM_EMAIL_VERIFIED || FROM_EMAIL_DEFAULT;
+  const configured = process.env.RESEND_FROM_EMAIL || '';
+  if (!configured) return FROM_EMAIL_DEFAULT;
+  return configured;
 }
 const APP_NAME = 'The Katanguri\'s Kitchen';
 const APP_URL = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
@@ -50,6 +51,26 @@ function baseTemplate(title: string, content: string): string {
 </html>`;
 }
 
+async function sendWithFrom(resend: any, from: string, options: { to: string; subject: string; html: string }): Promise<boolean> {
+  try {
+    const { error } = await resend.emails.send({
+      from,
+      to: [options.to],
+      subject: options.subject,
+      html: options.html,
+    });
+    if (error) {
+      logger.warn({ err: error, to: options.to, from }, '[EMAIL] Resend error');
+      return false;
+    }
+    logger.info({ to: options.to, subject: options.subject, from }, '[EMAIL] Sent via Resend');
+    return true;
+  } catch (err: any) {
+    logger.warn({ err: err.message, to: options.to, from }, '[EMAIL] Failed');
+    return false;
+  }
+}
+
 async function send(options: { to: string; subject: string; html: string }): Promise<boolean> {
   const resend = getResend();
   if (!resend) {
@@ -57,23 +78,16 @@ async function send(options: { to: string; subject: string; html: string }): Pro
     return false;
   }
 
-  try {
-    const { error } = await resend.emails.send({
-      from: getFromEmail(),
-      to: [options.to],
-      subject: options.subject,
-      html: options.html,
-    });
-    if (error) {
-      logger.error({ err: error, to: options.to }, '[EMAIL] Resend error');
-      return false;
-    }
-    logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Sent via Resend');
-    return true;
-  } catch (err: any) {
-    logger.error({ err: err.message, to: options.to }, '[EMAIL] Failed');
-    return false;
+  const configuredFrom = getFromEmail();
+  const ok = await sendWithFrom(resend, configuredFrom, options);
+  if (ok) return true;
+
+  const fallbackFrom = FROM_EMAIL_DEFAULT;
+  if (configuredFrom !== fallbackFrom) {
+    logger.warn({ configured: configuredFrom, fallback: fallbackFrom }, '[EMAIL] Retrying with fallback FROM address');
+    return sendWithFrom(resend, fallbackFrom, options);
   }
+  return false;
 }
 
 export async function sendOTP(email: string, otp: string, purpose: string = 'verification'): Promise<boolean> {
