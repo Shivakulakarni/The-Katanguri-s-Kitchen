@@ -171,9 +171,9 @@ function AuthForm() {
         if (isLogin) {
           const data = await api.post('/api/v1/auth/login', { phone: `+91${phone}`, otp });
           if (data.error) { setError(data.error); setAttempts(a => a + 1); setLoading(false); return; }
-          if (data.token) {
+          if (data.accessToken) {
             trackEvent('login', { method: 'phone', isLogin: true });
-            setAuth(data.user, data.token);
+            setAuth(data.user, data.accessToken, data.refreshToken);
             setOtpStatus('verified');
             setSuccess('Signed in!');
             setTimeout(() => router.push('/'), 500);
@@ -181,9 +181,9 @@ function AuthForm() {
         } else {
           const data = await api.post('/api/v1/auth/register', { phone: `+91${phone}`, otp, name: name || undefined, email: email || undefined });
           if (data.error) { setError(data.error); setAttempts(a => a + 1); setLoading(false); return; }
-          if (data.token) {
+          if (data.accessToken) {
             trackEvent('login', { method: 'phone', isLogin: false });
-            setAuth(data.user, data.token);
+            setAuth(data.user, data.accessToken, data.refreshToken);
             setOtpStatus('verified');
             setSuccess('Account created!');
             setTimeout(() => router.push('/'), 500);
@@ -192,9 +192,9 @@ function AuthForm() {
       } else {
         const data = await api.post('/api/v1/auth/email-verify', { email, otp, name: name || undefined });
         if (data.error) { setError(data.error); setAttempts(a => a + 1); setLoading(false); return; }
-        if (data.token) {
+        if (data.accessToken) {
           trackEvent('login', { method: 'email', isLogin });
-          setAuth(data.user, data.token);
+          setAuth(data.user, data.accessToken, data.refreshToken);
           setOtpStatus('verified');
           setSuccess(isLogin ? 'Signed in!' : 'Account created!');
           setTimeout(() => router.push('/'), 500);

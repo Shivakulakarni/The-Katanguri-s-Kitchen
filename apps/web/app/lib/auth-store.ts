@@ -114,7 +114,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = await res.json();
       if (data.error) return { error: data.error };
       if (!data.user) return { error: 'Invalid server response' };
-      get().setAuth(data.user, data.token, data.refreshToken);
+      get().setAuth(data.user, data.accessToken, data.refreshToken);
       return {};
     } catch (err: unknown) {
       const error = ensureAppError(err);
@@ -136,7 +136,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = await res.json();
       if (data.error) return { error: data.error };
       if (!data.user) return { error: 'Invalid server response' };
-      get().setAuth(data.user, data.token, data.refreshToken);
+      get().setAuth(data.user, data.accessToken, data.refreshToken);
       return {};
     } catch (err: unknown) {
       const error = ensureAppError(err);
@@ -176,7 +176,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const data = await res.json();
       if (data.error) return { error: data.error };
       if (!data.user) return { error: 'Invalid server response' };
-      get().setAuth(data.user, data.token, data.refreshToken);
+      get().setAuth(data.user, data.accessToken, data.refreshToken);
       return {};
     } catch (err: unknown) {
       const error = ensureAppError(err);
@@ -202,8 +202,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         return false;
       }
       const data = await res.json();
-      if (data.token) {
-        get().setAuth(data.user || cur.user!, data.token, data.refreshToken || cur.refreshToken);
+      if (data.accessToken) {
+        get().setAuth(data.user || cur.user!, data.accessToken, data.refreshToken || cur.refreshToken);
         return true;
       }
       get().logout();
