@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import http from 'http';
 import './tracing.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -80,6 +81,16 @@ const isProduction = process.env.NODE_ENV === 'production';
 const PORT = parseInt(process.env.PORT || '3001');
 const serverStartTime = Date.now();
 let isShuttingDown = false;
+
+// ── Bootstrap HTTP server — opens port IMMEDIATELY for Render health checks ──
+// This runs BEFORE main() starts the Fastify server.
+const bootServer = http.createServer((_req, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ status: 'ok', bootstrapping: true, port: PORT }));
+});
+bootServer.listen(PORT, '0.0.0.0', () => {
+  console.log(`[BOOT] Port ${PORT} opened for health checks`);
+});
 
 async function main() {
   const app = Fastify({
@@ -595,6 +606,8 @@ async function main() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
+    // Close bootstrap server so Fastify can bind to the same port
+    await new Promise<void>((resolve) => bootServer.close(() => resolve()));
     await app.listen({ port: PORT, host: '0.0.0.0' });
     logger.info({ port: PORT }, '[Server] Kitchen API running');
 

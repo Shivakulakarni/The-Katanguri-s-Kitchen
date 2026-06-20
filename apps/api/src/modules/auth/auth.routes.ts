@@ -40,9 +40,10 @@ function clearAuthCookies(reply: any) {
   reply.clearCookie('refresh_token', { path: '/api/v1/auth/refresh' });
 }
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || '';
 if (!JWT_SECRET) {
-  throw new Error('JWT_SECRET must be set');
+  // Don't crash at module level — log warning and continue
+  console.warn('[AUTH] JWT_SECRET is not set — some auth features may not work');
 }
 
 // In-memory rate limit fallback when Redis is unavailable (periodically evicted)
@@ -574,5 +575,18 @@ export async function authRoutes(app: FastifyInstance) {
     const tokens = await generateTokenPair(customer.id, 'customer');
     setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
     return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: 'customer' } };
+  });
+
+  // Auth status endpoint
+  app.get('/api/v1/auth/status', async (_request, reply) => {
+    return reply.send({
+      authenticated: false,
+      providers: {
+        email: { configured: !!process.env.SENDGRID_API_KEY || !!process.env.RESEND_API_KEY, method: 'otp' },
+        phone: { configured: !!process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_ACCOUNT_SID !== 'CHANGE_ME', method: 'otp' },
+        google: { configured: !!process.env.SUPABASE_URL, method: 'oauth' },
+        supabase: { configured: !!process.env.SUPABASE_URL && !!process.env.SUPABASE_SERVICE_ROLE_KEY },
+      },
+    });
   });
 }

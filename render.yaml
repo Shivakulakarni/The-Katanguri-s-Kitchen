@@ -5,9 +5,11 @@ services:
     runtime: node
     plan: free
     buildCommand: |
-      cd apps/api
-      npm install
-      npm run build
+      rm -rf apps/api/dist
+      npm cache clean --force
+      npm install --include=dev
+      npm run build -w packages/shared
+      npm run build -w apps/api
     startCommand: cd apps/api && node dist/index.js
     healthCheckPath: /api/v1/health
     envVars:
