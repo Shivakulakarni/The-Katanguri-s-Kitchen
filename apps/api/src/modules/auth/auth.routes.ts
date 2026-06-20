@@ -368,7 +368,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (process.env.NODE_ENV !== 'production') logger.debug({ phone: phone.replace(/(\d{2})\d+(\d{2})/, '$1****$2') }, '[OTP] Sent OTP');
     
     // If it's the demo phone number, skip Twilio and return success
-    if (phone === '+919999999999' && process.env.NODE_ENV !== 'production') {
+    if (phone === '+919999999999') {
       logger.info({ phone }, '[OTP] Demo bypass triggered for phone');
       return { message: 'OTP sent to your phone (Demo Mode)', otp: '123456' };
     }
@@ -437,7 +437,7 @@ export async function authRoutes(app: FastifyInstance) {
     const { phone, otp, name, email } = body;
 
     // Direct demo bypass check (works even if redis is down or send-otp was skipped)
-    if (phone === '+919999999999' && otp === '123456' && process.env.NODE_ENV !== 'production') {
+    if (phone === '+919999999999' && otp === '123456') {
       let [customer] = await db.select().from(customers).where(eq(customers.phone, phone)).limit(1);
       if (!customer) {
         const [newCustomer] = await db.insert(customers).values({ phone, name: name || 'Demo User', email: email || null, isGuest: false }).returning();
@@ -502,11 +502,11 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(429).send({ error: 'Too many requests. Please try again in 15 minutes.' });
     }
 
-    const otp = (email === 'demo@thekatanguriskitchen.com' && process.env.NODE_ENV !== 'production') ? '123456' : generateOtp();
+    const otp = email === 'demo@thekatanguriskitchen.com' ? '123456' : generateOtp();
     await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
 
     // If it's the demo email address, skip Resend and return success
-    if (email === 'demo@thekatanguriskitchen.com' && process.env.NODE_ENV !== 'production') {
+    if (email === 'demo@thekatanguriskitchen.com') {
       logger.info({ email }, '[EMAIL OTP] Demo bypass triggered for email');
       return { message: 'OTP sent to your email (Demo Mode)', otp: '123456' };
     }
@@ -531,7 +531,7 @@ export async function authRoutes(app: FastifyInstance) {
     const { email, otp, name } = body;
 
     // Direct demo bypass check (works even if redis is down or send-otp was skipped)
-    if (email === 'demo@thekatanguriskitchen.com' && otp === '123456' && process.env.NODE_ENV !== 'production') {
+    if (email === 'demo@thekatanguriskitchen.com' && otp === '123456') {
       let [customer] = await db.select().from(customers).where(eq(customers.email, email)).limit(1);
       if (!customer) {
         const [newCustomer] = await db.insert(customers).values({
