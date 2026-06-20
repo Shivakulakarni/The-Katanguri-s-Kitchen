@@ -1,3 +1,4 @@
+import { Resend } from 'resend';
 import { logger } from '../utils/logger.js';
 
 function escapeHtml(str: string): string {
@@ -5,50 +6,21 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
+const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'orders@thekatanguriskitchen.com';
 const APP_NAME = 'The Katanguri\'s Kitchen';
 const APP_URL = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
 
-function getFromEmail(): string {
-  return process.env.SENDGRID_FROM_EMAIL || 'orders@thekatanguriskitchen.com';
-}
-
-async function sendGridSend(to: string, subject: string, html: string, text?: string): Promise<boolean> {
-  const apiKey = process.env.SENDGRID_API_KEY || '';
-  if (!apiKey) {
-    logger.warn('[EMAIL] SENDGRID_API_KEY not set — emails will not be sent');
-    return false;
+let _resend: Resend | null = null;
+function getResend(): Resend | null {
+  if (_resend) return _resend;
+  const key = process.env.RESEND_API_KEY || '';
+  if (!key) {
+    logger.warn('[EMAIL] RESEND_API_KEY not set — emails will not be sent');
+    return null;
   }
-
-  try {
-    const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        personalizations: [{ to: [{ email: to }] }],
-        from: { email: getFromEmail(), name: APP_NAME },
-        subject,
-        content: [
-          { type: 'text/html', value: html },
-          ...(text ? [{ type: 'text/plain', value: text }] : []),
-        ],
-      }),
-    });
-
-    if (res.ok) {
-      logger.info({ to, subject }, '[EMAIL] Sent via SendGrid');
-      return true;
-    }
-
-    const body = await res.text();
-    logger.error({ to, subject, status: res.status, body }, '[EMAIL] SendGrid error');
-    return false;
-  } catch (err: any) {
-    logger.error({ err: err.message, to, subject }, '[EMAIL] SendGrid failed');
-    return false;
-  }
+  _resend = new Resend(key);
+  logger.info('[EMAIL] Resend initialized');
+  return _resend;
 }
 
 function baseTemplate(title: string, content: string): string {
@@ -73,6 +45,32 @@ function baseTemplate(title: string, content: string): string {
 </html>`;
 }
 
+async function send(options: { to: string; subject: string; html: string }): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) {
+    logger.warn({ to: options.to, subject: options.subject }, '[EMAIL] Skipped — no provider configured');
+    return false;
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [options.to],
+      subject: options.subject,
+      html: options.html,
+    });
+    if (error) {
+      logger.error({ err: error, to: options.to }, '[EMAIL] Resend error');
+      return false;
+    }
+    logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Sent via Resend');
+    return true;
+  } catch (err: any) {
+    logger.error({ err: err.message, to: options.to }, '[EMAIL] Failed');
+    return false;
+  }
+}
+
 export async function sendOTP(email: string, otp: string, purpose: string = 'verification'): Promise<boolean> {
   const html = baseTemplate('Your Verification Code', `
     <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">Use the code below to complete your ${purpose}.</p>
@@ -84,7 +82,7 @@ export async function sendOTP(email: string, otp: string, purpose: string = 'ver
     <p style="color:#999;font-size:13px;text-align:center;">This code expires in 10 minutes. Do not share it with anyone.</p>
   `);
 
-  return sendGridSend(email, `Your ${purpose} Code — ${APP_NAME}`, html);
+  return send({ to: email, subject: `Your ${purpose} Code — ${APP_NAME}`, html });
 }
 
 export async function sendOrderConfirmation(email: string, orderId: number, items: { name: string; qty: number; price: number }[], totalAmount: number): Promise<boolean> {
@@ -108,7 +106,7 @@ export async function sendOrderConfirmation(email: string, orderId: number, item
     <p style="color:#999;font-size:13px;text-align:center;">Estimated delivery: 30 minutes</p>
   `);
 
-  return sendGridSend(email, `Order #${orderId} Confirmed — ${APP_NAME}`, html);
+  return send({ to: email, subject: `Order #${orderId} Confirmed — ${APP_NAME}`, html });
 }
 
 export async function sendOutForDelivery(email: string, orderId: number): Promise<boolean> {
@@ -117,10 +115,9 @@ export async function sendOutForDelivery(email: string, orderId: number): Promis
     <div style="text-align:center;margin:24px 0;">
       <a href="${APP_URL}/track?id=${orderId}" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Track Live</a>
     </div>
-    <p style="color:#999;font-size:13px;text-align:center;">Your delivery partner will reach you shortly.</p>
   `);
 
-  return sendGridSend(email, `Order #${orderId} Out for Delivery — ${APP_NAME}`, html);
+  return send({ to: email, subject: `Order #${orderId} Out for Delivery — ${APP_NAME}`, html });
 }
 
 export async function sendFeedbackRequest(email: string, orderId: number): Promise<boolean> {
@@ -129,10 +126,9 @@ export async function sendFeedbackRequest(email: string, orderId: number): Promi
     <div style="text-align:center;margin:24px 0;">
       <a href="${APP_URL}/feedback/${orderId}" style="display:inline-block;background:#e23744;color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Rate Your Experience</a>
     </div>
-    <p style="color:#999;font-size:13px;text-align:center;">It takes just 30 seconds and means the world to us.</p>
   `);
 
-  return sendGridSend(email, `How was Order #${orderId}? — ${APP_NAME}`, html);
+  return send({ to: email, subject: `How was Order #${orderId}? — ${APP_NAME}`, html });
 }
 
 export async function sendAbandonedCart(email: string, _cartSummary: string): Promise<boolean> {
@@ -143,7 +139,7 @@ export async function sendAbandonedCart(email: string, _cartSummary: string): Pr
     </div>
   `);
 
-  return sendGridSend(email, `Complete Your Order — ${APP_NAME}`, html);
+  return send({ to: email, subject: `Complete Your Order — ${APP_NAME}`, html });
 }
 
 export async function sendReEngagement(email: string, name: string): Promise<boolean> {
@@ -154,7 +150,7 @@ export async function sendReEngagement(email: string, name: string): Promise<boo
     </div>
   `);
 
-  return sendGridSend(email, `We Miss You! — ${APP_NAME}`, html);
+  return send({ to: email, subject: `We Miss You! — ${APP_NAME}`, html });
 }
 
 export async function sendAdminAlert(emails: string[], subject: string, body: string): Promise<boolean> {
@@ -162,12 +158,11 @@ export async function sendAdminAlert(emails: string[], subject: string, body: st
     <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:20px;margin-bottom:16px;">
       <pre style="margin:0;font-family:monospace;font-size:13px;color:#92400e;white-space:pre-wrap;">${escapeHtml(body)}</pre>
     </div>
-    <p style="color:#999;font-size:12px;">This is an automated alert from the kitchen management system.</p>
   `);
 
   let allSuccess = true;
   for (const email of emails) {
-    const ok = await sendGridSend(email, `[ALERT] ${subject}`, html);
+    const ok = await send({ to: email, subject: `[ALERT] ${subject}`, html });
     if (!ok) allSuccess = false;
   }
   return allSuccess;
@@ -176,15 +171,13 @@ export async function sendAdminAlert(emails: string[], subject: string, body: st
 export async function sendContactForm(name: string, email: string, subject: string, message: string): Promise<boolean> {
   const adminEmail = process.env.CONTACT_FORM_EMAIL || process.env.ADMIN_EMAIL || 'admin@thekatanguriskitchen.com';
   const html = baseTemplate('New Contact Form Submission', `
-    <p style="color:#666;font-size:15px;line-height:1.6;margin:0 0 20px;">You have received a new contact form submission.</p>
     <div style="background:#f8f8f8;border-radius:8px;padding:20px;margin:20px 0;">
       <p style="color:#1c1c1c;font-size:14px;margin:0 0 8px;"><strong>Name:</strong> ${escapeHtml(name)}</p>
       <p style="color:#1c1c1c;font-size:14px;margin:0 0 8px;"><strong>Email:</strong> ${escapeHtml(email)}</p>
-      <p style="color:#1c1c1c;font-size:14px;margin:0 0 8px;"><strong>Subject:</strong> ${escapeHtml(subject) || 'No subject'}</p>
       <p style="color:#1c1c1c;font-size:14px;margin:0;"><strong>Message:</strong></p>
       <p style="color:#666;font-size:14px;line-height:1.6;margin:8px 0 0;white-space:pre-wrap;">${escapeHtml(message)}</p>
     </div>
   `);
 
-  return sendGridSend(adminEmail, `Contact Form: ${escapeHtml(subject) || 'No subject'} — ${APP_NAME}`, html);
+  return send({ to: adminEmail, subject: `Contact: ${escapeHtml(subject) || 'No subject'} — ${APP_NAME}`, html });
 }
