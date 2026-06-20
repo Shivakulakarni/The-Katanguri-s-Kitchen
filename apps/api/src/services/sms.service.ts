@@ -5,10 +5,7 @@ const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID || '';
 const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || '';
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER || '';
 
-const isPlaceholder = (v: string) => !v || v.includes('CHANGE_ME') || v.includes('YOUR_PROJECT') || v === 'null';
-
-const hasRealCreds = !isPlaceholder(TWILIO_ACCOUNT_SID) && !isPlaceholder(TWILIO_AUTH_TOKEN) && !isPlaceholder(TWILIO_PHONE_NUMBER);
-const isTwilioConfigured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER && hasRealCreds);
+const isTwilioConfigured = !!(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_PHONE_NUMBER);
 
 let twilioClient: twilio.Twilio | null = null;
 if (isTwilioConfigured) {
@@ -56,17 +53,16 @@ export async function sendSMS(
     return { success: true, provider: 'twilio', sid: result.sid };
   } catch (err: any) {
     logger.error({ err: err.message, to: recipient, code: err.code }, '[SMS] Failed to send');
-    return { success: false, error: err.message || 'SMS delivery failed', provider: 'twilio' };
+    return { success: false, error: err.message, provider: 'twilio' };
   }
 }
 
 export async function sendOrderSMS(phone: string, template: 'confirmation' | 'out_for_delivery' | 'feedback' | 'abandoned_cart', data: Record<string, any>): Promise<SmsResult> {
-  const appUrl = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
   const templates: Record<string, (d: Record<string, any>) => string> = {
     confirmation: (d) => `Order #${d.orderId} confirmed! Your food is being prepared. ETA: 30 min — The Katanguri's Kitchen`,
-    out_for_delivery: (d) => `Your order #${d.orderId} is out for delivery! Track live: ${appUrl}/track/${d.orderId}`,
-    feedback: (d) => `How was your meal? Rate your experience: ${appUrl}/track/${d.orderId}`,
-    abandoned_cart: (_d) => `You left items in your cart! Complete your order and get 10% off: ${appUrl}/cart`,
+    out_for_delivery: (d) => `Your order #${d.orderId} is out for delivery! Track live: https://kitchen.app/track/${d.orderId}`,
+    feedback: (d) => `How was your meal? Rate your experience: https://kitchen.app/feedback/${d.orderId}`,
+    abandoned_cart: (_d) => `You left items in your cart! Complete your order and get 10% off: https://kitchen.app/cart`,
   };
 
   const message = templates[template]?.(data);

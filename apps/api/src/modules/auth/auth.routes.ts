@@ -143,35 +143,11 @@ async function upsertCustomerFromSupabase(supabaseUser: any, extra?: { phone?: s
 }
 
 export async function authRoutes(app: FastifyInstance) {
-  // ── Public Auth Status (no auth required — for debugging) ──
-  app.get('/api/v1/auth/status', async () => {
-    const hasSupabase = !!(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.SUPABASE_URL.includes('CHANGE_ME'));
-    const hasResend = !!(process.env.RESEND_API_KEY && !process.env.RESEND_API_KEY.includes('CHANGE_ME'));
-    const hasSendGrid = !!(process.env.SENDGRID_API_KEY && !process.env.SENDGRID_API_KEY.includes('CHANGE_ME'));
-    const hasTwilio = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER && !process.env.TWILIO_ACCOUNT_SID.includes('CHANGE_ME'));
-    return {
-      providers: {
-        supabase: hasSupabase ? 'configured' : 'not configured',
-        email: hasSendGrid ? 'sendgrid' : hasResend ? 'resend' : 'not configured',
-        sms: hasTwilio ? 'twilio' : hasSupabase ? 'supabase' : 'not configured',
-        google: hasSupabase ? 'configured' : 'not configured',
-      },
-      demo_bypass: process.env.NODE_ENV !== 'production' ? 'enabled' : 'disabled',
-      environment: process.env.NODE_ENV || 'development',
-    };
-  });
-
   // ── Register (phone-based with optional OTP) ──
   app.post('/api/v1/auth/register', async (request, reply) => {
     const body = await validateBody(request, reply, registerSchema);
     if (body === null) return;
     const { email, phone, name, password, otp } = body;
-
-    const ip = request.ip;
-    if (!(await checkAuthRateLimit(ip, LOGIN_RATE_LIMIT))) {
-      logger.warn({ ip }, '[AUTH] Rate limit exceeded on register');
-      return reply.status(429).send({ error: 'Too many requests. Please try again later.' });
-    }
 
     // If Supabase is configured, use Supabase Auth
     if (supabaseAdmin) {
@@ -180,9 +156,9 @@ export async function authRoutes(app: FastifyInstance) {
         const { data, error } = await supabaseAdmin.auth.verifyOtp({ phone, token: otp, type: 'sms' });
         if (!error) {
           const customer = await upsertCustomerFromSupabase(data.user, { phone, name });
-          const tokens = await generateTokenPair(customer.id, customer.role || 'customer');
+          const tokens = await generateTokenPair(customer.id, 'customer');
           setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
-          return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: customer.role || 'customer' } };
+          return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: 'customer' } };
         }
         logger.warn({ err: error.message }, '[AUTH] Supabase register OTP failed, falling back to local');
       }
@@ -380,28 +356,21 @@ export async function authRoutes(app: FastifyInstance) {
       logger.warn({ err: error.message }, '[AUTH] Supabase OTP failed, falling back to local OTP');
     }
 
-    // Demo bypass (production only: disabled)
-    if (process.env.NODE_ENV !== 'production' && phone === '+919999999999') {
-      const otp = '123456';
-      await setOtp(phone, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone });
-      logger.info({ phone }, '[OTP] Demo bypass triggered for phone');
-      return { message: 'OTP sent to your phone (Demo Mode)', otp };
-    }
-
     // Legacy OTP
     const otp = generateOtp();
     await setOtp(phone, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone });
-    logger.debug({ phone: phone.replace(/(\d{2})\d+(\d{2})/, '$1****$2') }, '[OTP] Sent OTP');
-
+    if (process.env.NODE_ENV !== 'production') logger.debug({ phone: phone.replace(/(\d{2})\d+(\d{2})/, '$1****$2') }, '[OTP] Sent OTP');
+    
     // Send OTP via Twilio SMS
     const smsResult = await sendSMS(phone, `Your OTP for The Katanguri's Kitchen is ${otp}. Valid for 5 minutes.`);
     
     if (!smsResult.success) {
-      logger.warn({ phone, err: smsResult.error }, '[AUTH] SMS delivery failed');
-      return {
-        message: 'SMS delivery unavailable.',
-        error: smsResult.error,
+      logger.warn({ phone, error: smsResult.error }, '[AUTH] SMS delivery failed');
+      return { 
+        message: 'OTP generated but SMS delivery failed', 
         smsFailed: true,
+        error: smsResult.error || 'SMS delivery failed. Please try email OTP.',
+        fallbackAvailable: true,
       };
     }
 
@@ -458,19 +427,6 @@ export async function authRoutes(app: FastifyInstance) {
     if (body === null) return;
     const { phone, otp, name, email } = body;
 
-    // Demo bypass (production only: disabled)
-    if (process.env.NODE_ENV !== 'production' && phone === '+919999999999' && otp === '123456') {
-      let [customer] = await db.select().from(customers).where(eq(customers.phone, phone)).limit(1);
-      if (!customer) {
-        const [newCustomer] = await db.insert(customers).values({ phone, name: name || 'Demo User', email: email || null, isGuest: false }).returning();
-        customer = newCustomer;
-        await publishEvent('customer.created', { customer });
-      }
-      const tokens = await generateTokenPair(customer.id, 'customer');
-      setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
-      return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: 'customer' } };
-    }
-
     // Rate limit: max 5 verify-otp attempts per 15 min per IP
     const ip = (request.headers['x-forwarded-for'] as string) || request.ip || 'unknown';
     if (!(await checkAuthRateLimit(ip, 5))) {
@@ -524,34 +480,18 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(429).send({ error: 'Too many requests. Please try again in 15 minutes.' });
     }
 
-    // Demo bypass (production only: disabled)
-    if (process.env.NODE_ENV !== 'production' && email === 'demo@thekatanguriskitchen.com') {
-      const otp = '123456';
-      await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
-      logger.info({ email }, '[EMAIL OTP] Demo bypass triggered for email');
-      return { message: 'OTP sent to your email (Demo Mode)', otp };
-    }
-
-    // Primary: Supabase Email OTP (managed auth — handles delivery, templates, etc.)
-    if (supabaseAdmin) {
-      const { error } = await supabaseAdmin.auth.signInWithOtp({ email, options: { emailRedirectTo: process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app' } });
-      if (!error) {
-        logger.info({ email }, '[EMAIL OTP] Sent via Supabase');
-        return { message: 'OTP sent to your email' };
-      }
-      logger.warn({ err: error.message, email }, '[EMAIL OTP] Supabase email OTP failed, falling back to local');
-    }
-
-    // Fallback: Local OTP via Resend/SendGrid
     const otp = generateOtp();
     await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
 
-    const { sendOTP } = await import('../../services/email.service.js');
-    const emailSent = await sendOTP(email, otp, 'login');
+    if (process.env.NODE_ENV !== 'production') logger.debug({ email }, '[EMAIL OTP] Sent OTP');
 
-    if (!emailSent) {
-      logger.warn({ email }, '[EMAIL OTP] All email delivery methods failed');
-      return reply.status(503).send({ error: 'Email delivery unavailable. Please try phone login or try again later.' });
+    // Try sending via SendGrid, fall back to console
+    try {
+      const { sendOTP } = await import('../../services/email.service.js');
+      await sendOTP(email, otp, 'login');
+    } catch (err: any) {
+      logger.warn({ email, error: err?.message }, '[EMAIL OTP] SendGrid failed — returning failure');
+      return reply.status(503).send({ error: 'Email delivery failed. Please try phone OTP.', smsFailed: true });
     }
 
     return { message: 'OTP sent to your email' };
@@ -563,52 +503,11 @@ export async function authRoutes(app: FastifyInstance) {
     if (body === null) return;
     const { email, otp, name } = body;
 
-    // Demo bypass (production only: disabled)
-    if (process.env.NODE_ENV !== 'production' && email === 'demo@thekatanguriskitchen.com' && otp === '123456') {
-      let [customer] = await db.select().from(customers).where(eq(customers.email, email)).limit(1);
-      if (!customer) {
-        const [newCustomer] = await db.insert(customers).values({
-          email, name: name || 'Demo Admin', isGuest: false, role: 'admin'
-        }).returning();
-        customer = newCustomer;
-        await publishEvent('customer.created', { customer });
-      } else if (customer.role !== 'admin') {
-        const [updated] = await db.update(customers).set({ role: 'admin' }).where(eq(customers.id, customer.id)).returning();
-        customer = updated;
-      }
-      const tokens = await generateTokenPair(customer.id, customer.role === 'admin' ? 'admin' : 'customer');
-      setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
-      return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: customer.role } };
-    }
-
     const ip = (request.headers['x-forwarded-for'] as string) || request.ip || 'unknown';
     if (!(await checkAuthRateLimit(ip, 5))) {
       return reply.status(429).send({ error: 'Too many verification attempts. Please try again in 15 minutes.' });
     }
 
-    // Primary: Supabase Email OTP verification
-    if (supabaseAdmin) {
-      const { data, error } = await supabaseAdmin.auth.verifyOtp({ email, token: otp, type: 'email' });
-      if (!error && data.user) {
-        const customer = await upsertCustomerFromSupabase(data.user, { name });
-        const userRole = customer.role || 'customer';
-
-        // Auto-promote admin emails
-        let finalRole = userRole;
-        const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-        if (adminEmails.includes(email.toLowerCase()) && userRole !== 'admin') {
-          const [updated] = await db.update(customers).set({ role: 'admin' }).where(eq(customers.id, customer.id)).returning();
-          if (updated) finalRole = updated.role || 'admin';
-        }
-
-        const tokens = await generateTokenPair(customer.id, finalRole);
-        setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
-        return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: finalRole } };
-      }
-      logger.warn({ err: error?.message, email }, '[EMAIL VERIFY] Supabase verify failed, falling back to local');
-    }
-
-    // Fallback: Local OTP verification
     const key = `email:${email}`;
     const stored = await getOtp(key);
     if (!stored || !safeOtpCompare(stored.otp, otp)) {
@@ -633,23 +532,9 @@ export async function authRoutes(app: FastifyInstance) {
       customer = updated;
     }
 
-    const userRole = customer.role || 'customer';
-
-    // Auto-promote emails listed in ADMIN_EMAILS env var
-    let finalRole = userRole;
-    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-    if (adminEmails.includes(email.toLowerCase()) && userRole !== 'admin') {
-      const [updated] = await db.update(customers).set({ role: 'admin' }).where(eq(customers.id, customer.id)).returning();
-      if (updated) {
-        finalRole = updated.role || 'admin';
-      } else {
-        finalRole = 'admin';
-      }
-    }
-
-    const tokens = await generateTokenPair(customer.id, finalRole);
+    const tokens = await generateTokenPair(customer.id, 'customer');
     setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
-    return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: finalRole } };
+    return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: 'customer' } };
   });
 
   // ── Social Login (requires Supabase OAuth) ──

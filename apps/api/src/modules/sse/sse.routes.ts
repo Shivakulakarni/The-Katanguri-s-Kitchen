@@ -10,7 +10,15 @@ import { JwtPayload } from '../../types/index.js';
 import { logger } from '../../utils/logger.js';
 import { sseClientsGauge } from '../../utils/metrics.js';
 
-const JWT_SECRET = process.env.JWT_SECRET || '';
+const JWT_SECRET = process.env.JWT_SECRET!;
+if (!JWT_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    logger.fatal('[FATAL] JWT_SECRET is not set. Cannot start in production.');
+    process.exit(1);
+  }
+  logger.fatal('[FATAL] JWT_SECRET must be set in environment');
+  throw new Error('JWT_SECRET not configured');
+}
 
 const ORDER_SSE_CHANNELS = [
   'order.placed', 'order.confirmed', 'order.cancelled',

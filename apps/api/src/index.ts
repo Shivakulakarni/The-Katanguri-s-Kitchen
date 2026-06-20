@@ -1,14 +1,4 @@
 import 'dotenv/config';
-import http from 'http';
-
-// ── IMMEDIATE PORT OPEN — before ANY other imports — so Render sees port open ──
-const BOOT_PORT = parseInt(process.env.PORT || '3001');
-const bootstrapServer = http.createServer((_req, res) => {
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ status: 'ok', bootstrapping: true }));
-});
-bootstrapServer.listen(BOOT_PORT, '0.0.0.0');
-
 import './tracing.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -92,16 +82,6 @@ const serverStartTime = Date.now();
 let isShuttingDown = false;
 
 async function main() {
-  // Polyfill WebSocket for Node.js 20 (required by @supabase/realtime-js)
-  try {
-    const { WebSocket } = await import('ws');
-    if (typeof globalThis.WebSocket === 'undefined') {
-      (globalThis as any).WebSocket = WebSocket;
-    }
-  } catch (err: any) {
-    console.error('[WS] WebSocket polyfill failed:', err.message);
-  }
-
   const app = Fastify({
     logger: {
       level: process.env.LOG_LEVEL || (isProduction ? 'info' : 'debug'),
@@ -223,11 +203,6 @@ async function main() {
   const allowedOrigins: (string | RegExp)[] = [
     ...envOrigins, ...localhostOrigins, ...productionOrigins,
   ];
-
-  if (isProduction && allowedOrigins.length === 0) {
-    app.log.warn('[CORS] No allowed origins configured! Set CORS_ORIGINS or APP_URL.');
-  }
-
   await app.register(cors, {
     origin: (origin, cb) => {
       // Always enforce CORS — no environment bypass
@@ -253,7 +228,7 @@ async function main() {
         scriptSrc: ["'self'", 'https://unpkg.com'],
         styleSrc: ["'self'", "'unsafe-inline'", 'https://unpkg.com'],
         imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'https://*.supabase.co', process.env.APP_URL || ''],
+        connectSrc: ["'self'", 'http://localhost:3000', 'http://localhost:3002', 'https://*.supabase.co'],
         fontSrc: ["'self'"],
         objectSrc: ["'none'"],
         frameAncestors: ["'none'"],
@@ -390,31 +365,9 @@ async function main() {
       timestamp: new Date().toISOString(),
       uptime: Math.floor((Date.now() - serverStartTime) / 1000),
       version: '1.0.0',
-      commit: 'd70ad2c',
       environment: process.env.NODE_ENV || 'development',
       checks,
     });
-  });
-
-  // ── Env Var Diagnostics (admin only — helps debug Render deployment) ──
-  app.get('/api/v1/admin/env-status', { preHandler: [authenticate, requireAdmin] }, async () => {
-    const check = (key: string) => {
-      const v = process.env[key] || '';
-      if (!v) return 'MISSING';
-      if (v.includes('CHANGE_ME') || v.includes('YOUR_')) return 'PLACEHOLDER';
-      return 'SET';
-    };
-    return {
-      database: { DATABASE_URL: check('DATABASE_URL') },
-      redis: { REDIS_URL: check('REDIS_URL') },
-      auth: { JWT_SECRET: check('JWT_SECRET'), JWT_REFRESH_SECRET: check('JWT_REFRESH_SECRET'), COOKIE_SECRET: check('COOKIE_SECRET') },
-      supabase: { SUPABASE_URL: check('SUPABASE_URL'), SUPABASE_ANON_KEY: check('SUPABASE_ANON_KEY'), SUPABASE_SERVICE_ROLE_KEY: check('SUPABASE_SERVICE_ROLE_KEY'), SUPABASE_JWT_SECRET: check('SUPABASE_JWT_SECRET') },
-      email: { RESEND_API_KEY: check('RESEND_API_KEY'), RESEND_FROM_EMAIL: check('RESEND_FROM_EMAIL') },
-      sms: { TWILIO_ACCOUNT_SID: check('TWILIO_ACCOUNT_SID'), TWILIO_AUTH_TOKEN: check('TWILIO_AUTH_TOKEN'), TWILIO_PHONE_NUMBER: check('TWILIO_PHONE_NUMBER') },
-      payments: { STRIPE_SECRET_KEY: check('STRIPE_SECRET_KEY'), STRIPE_WEBHOOK_SECRET: check('STRIPE_WEBHOOK_SECRET') },
-      ai: { GROQ_API_KEY: check('GROQ_API_KEY'), GEMINI_API_KEY: check('GEMINI_API_KEY') },
-      misc: { APP_URL: check('APP_URL'), CORS_ORIGINS: check('CORS_ORIGINS'), ADMIN_EMAILS: check('ADMIN_EMAILS'), ENABLE_DEV_BYPASS: check('ENABLE_DEV_BYPASS') },
-    };
   });
 
   // ── Prometheus Metrics ──
@@ -642,8 +595,6 @@ async function main() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
-    // Close bootstrap server and let Fastify take over
-    bootstrapServer.close();
     await app.listen({ port: PORT, host: '0.0.0.0' });
     logger.info({ port: PORT }, '[Server] Kitchen API running');
 
@@ -655,8 +606,4 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('[FATAL] Server startup failed:', err?.message || err);
-  console.error(err?.stack);
-  process.exit(1);
-});
+main();

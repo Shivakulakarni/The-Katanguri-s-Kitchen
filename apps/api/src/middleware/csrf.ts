@@ -36,7 +36,6 @@ const CSRF_SKIP_PREFIXES = [
   '/api/v1/ai/food-story',
   '/api/v1/ai/cross-sell',
   '/api/v1/ai/status',
-  '/api/v1/auth/status',
   '/api/v1/promo/validate',
 ];
 
