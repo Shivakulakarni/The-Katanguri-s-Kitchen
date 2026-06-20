@@ -28,6 +28,7 @@ const CSRF_SKIP_PREFIXES = [
   '/api/v1/auth/',
   '/api/v1/admin/orders/stream',
   '/api/v1/admin/orders/live-status',
+  '/api/v1/admin/',
   '/api/v1/contact',
   '/api/v1/ai/chat/customer',
   '/api/v1/ai/chat/customer/stream',
@@ -37,6 +38,7 @@ const CSRF_SKIP_PREFIXES = [
   '/api/v1/ai/cross-sell',
   '/api/v1/ai/status',
   '/api/v1/promo/validate',
+  '/api/v1/feedback',
 ];
 
 export async function csrfGenerate(_request: FastifyRequest, reply: FastifyReply) {

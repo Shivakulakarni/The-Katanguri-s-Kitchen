@@ -22,6 +22,12 @@ const nextConfig = {
       { source: '/api/:path*', destination: `${API_URL}/api/:path*` },
     ];
   },
+  async redirects() {
+    return [
+      { source: '/login', destination: '/auth', permanent: false },
+      { source: '/register', destination: '/auth', permanent: false },
+    ];
+  },
   async headers() {
     return [
       {
