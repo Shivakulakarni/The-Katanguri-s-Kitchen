@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import http from 'http';
 import './tracing.js';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -91,6 +92,19 @@ async function main() {
   } catch (err: any) {
     console.error('[WS] WebSocket polyfill failed:', err.message);
   }
+
+  // ── Immediate HTTP listener for Render health checks (port opens immediately) ──
+  const bootstrapServer = http.createServer((req, res) => {
+    if (req.url === '/api/v1/health') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'ok', bootstrapping: true }));
+    } else {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'loading', message: 'Server is starting up' }));
+    }
+  });
+  bootstrapServer.listen(PORT, '0.0.0.0');
+  console.log(`[Bootstrap] Port ${PORT} is open — health checks will pass`);
 
   const app = Fastify({
     logger: {
@@ -632,6 +646,8 @@ async function main() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
+    // Close bootstrap server and let Fastify take over
+    bootstrapServer.close();
     await app.listen({ port: PORT, host: '0.0.0.0' });
     logger.info({ port: PORT }, '[Server] Kitchen API running');
 
