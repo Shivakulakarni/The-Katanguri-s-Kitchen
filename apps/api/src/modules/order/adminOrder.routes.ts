@@ -35,27 +35,41 @@ export async function adminOrderRoutes(app: FastifyInstance) {
     return { data, total: Number(total), hasMore: queryOffset + queryLimit < Number(total) };
   });
 
-  app.get('/api/v1/admin/orders/stats', async () => {
+  app.get('/api/v1/admin/orders/stats', async (request) => {
+    const { period = 'today' } = request.query as { period?: string };
+
+    let dateFilter;
+    if (period === 'week') {
+      dateFilter = sql`${orders.createdAt} >= NOW() - INTERVAL '7 days'`;
+    } else if (period === 'month') {
+      dateFilter = sql`${orders.createdAt} >= NOW() - INTERVAL '30 days'`;
+    } else {
+      dateFilter = sql`${orders.createdAt} >= CURRENT_DATE`;
+    }
+
     const statusCounts = await db.select({
       status: orders.status,
       count: count(),
-    }).from(orders).groupBy(orders.status);
+    }).from(orders)
+      .where(dateFilter)
+      .groupBy(orders.status);
 
     const countMap: Record<string, number> = {};
     for (const r of statusCounts) {
       countMap[r.status] = r.count;
     }
 
-    const todayRevenue = await db.select({
+    const revenue = await db.select({
       total: sql<string>`COALESCE(SUM(total_amount::numeric), 0)`,
       count: count(),
-    }).from(orders).where(gte(orders.createdAt, sql`CURRENT_DATE`));
+    }).from(orders).where(dateFilter);
 
-    const todayRow = todayRevenue[0] || { count: 0, total: '0' };
+    const row = revenue[0] || { count: 0, total: '0' };
 
     return {
-      totalToday: parseInt(todayRow.count.toString()),
-      revenueToday: Math.round(parseFloat(todayRow.total) * 100) / 100,
+      period,
+      totalToday: parseInt(row.count.toString()),
+      revenueToday: Math.round(parseFloat(row.total) * 100) / 100,
       pending: countMap['PENDING'] || 0,
       confirmed: countMap['CONFIRMED'] || 0,
       preparing: countMap['PREPARING'] || 0,

@@ -11,7 +11,7 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [newItem, setNewItem] = useState({ name: '', category: '', unit: 'kg', stock: 0, minStock: 10, costPerUnit: 0 });
+  const [newItem, setNewItem] = useState({ name: '', category: '', unit: 'kg', currentStock: 0, parLevel: 10, unitCost: 0 });
 
   useEffect(() => {
     const h = getAuthHeaders();
@@ -31,7 +31,7 @@ export default function InventoryPage() {
       const res = await fetch('/api/v1/admin/inventory', { method: 'POST', headers: h2, body: JSON.stringify(newItem) });
       if (!res.ok) throw new Error('Failed to add ingredient');
       setShowForm(false);
-      setNewItem({ name: '', category: '', unit: 'kg', stock: 0, minStock: 10, costPerUnit: 0 });
+      setNewItem({ name: '', category: '', unit: 'kg', currentStock: 0, parLevel: 10, unitCost: 0 });
       const data = await fetch('/api/v1/admin/inventory', { headers: h2 }).then(r => r.json());
       setIngredients(Array.isArray(data) ? data : data?.data || []);
     } catch (err: any) { toast.error('Add failed', err.message || 'Failed to add ingredient'); }
@@ -49,9 +49,9 @@ export default function InventoryPage() {
     } catch (err: any) { toast.error('Update failed', err.message || 'Failed to update stock'); }
   };
 
-  const lowStockItems = ingredients.filter((i: any) => i.stock <= i.minStock);
+  const lowStockItems = ingredients.filter((i: any) => (i.currentStock ?? i.stock ?? 0) <= (i.parLevel ?? i.minStock ?? 0));
   const displayItems = lowStockOnly ? lowStockItems : ingredients;
-  const totalValue = ingredients.reduce((sum: number, i: any) => sum + (i.stock * i.costPerUnit), 0);
+  const totalValue = ingredients.reduce((sum: number, i: any) => sum + ((i.currentStock ?? i.stock ?? 0) * (i.unitCost ?? i.costPerUnit ?? 0)), 0);
 
   if (loading) return <div style={{ padding: 24, color: T.muted }}>Loading inventory...</div>;
 
@@ -86,9 +86,9 @@ export default function InventoryPage() {
                 <option value="dozen">dozen</option>
               </select>
             </Field>
-            <Field label="Stock"><input type="number" value={newItem.stock} onChange={e => setNewItem({ ...newItem, stock: +e.target.value })} style={{ width: 80 }} /></Field>
-            <Field label="Min Stock"><input type="number" value={newItem.minStock} onChange={e => setNewItem({ ...newItem, minStock: +e.target.value })} style={{ width: 80 }} /></Field>
-            <Field label="Cost/Unit (₹)"><input type="number" step="0.01" value={newItem.costPerUnit} onChange={e => setNewItem({ ...newItem, costPerUnit: +e.target.value })} style={{ width: 100 }} /></Field>
+            <Field label="Stock"><input type="number" value={newItem.currentStock} onChange={e => setNewItem({ ...newItem, currentStock: +e.target.value })} style={{ width: 80 }} /></Field>
+            <Field label="Min Stock"><input type="number" value={newItem.parLevel} onChange={e => setNewItem({ ...newItem, parLevel: +e.target.value })} style={{ width: 80 }} /></Field>
+            <Field label="Cost/Unit (₹)"><input type="number" step="0.01" value={newItem.unitCost} onChange={e => setNewItem({ ...newItem, unitCost: +e.target.value })} style={{ width: 100 }} /></Field>
           </div>
           <div style={{ marginTop: 12 }}><Btn variant="primary" onClick={addIngredient} disabled={!newItem.name}>Add</Btn></div>
         </Card>
@@ -104,19 +104,22 @@ export default function InventoryPage() {
         </div>
         <DataTable headers={['Name', 'Category', 'Stock', 'Min', 'Unit', 'Cost/Unit', 'Status', 'Actions']}>
           {displayItems.map((item: any) => {
-            const isLow = item.stock <= item.minStock;
+            const stock = item.currentStock ?? item.stock ?? 0;
+            const minStock = item.parLevel ?? item.minStock ?? 0;
+            const cost = item.unitCost ?? item.costPerUnit ?? 0;
+            const isLow = stock <= minStock;
             return (
               <Tr key={item.id} style={isLow ? { background: 'rgba(255,71,87,0.04)' } : {}}>
                 <Td bold>{item.name}</Td>
-                <Td style={{ color: T.steel }}>{item.category}</Td>
-                <Td><span style={{ fontWeight: 700, color: isLow ? '#ef4444' : T.ink }}>{item.stock}</span></Td>
-                <Td style={{ color: T.muted }}>{item.minStock}</Td>
+                <Td style={{ color: T.steel }}>{item.category || '—'}</Td>
+                <Td><span style={{ fontWeight: 700, color: isLow ? '#ef4444' : T.ink }}>{stock}</span></Td>
+                <Td style={{ color: T.muted }}>{minStock}</Td>
                 <Td style={{ fontSize: 12, color: T.steel }}>{item.unit}</Td>
-                <Td>₹{item.costPerUnit?.toFixed(2)}</Td>
+                <Td>₹{cost?.toFixed(2)}</Td>
                 <Td><Badge variant={isLow ? 'danger' : 'success'}>{isLow ? 'Low Stock' : 'OK'}</Badge></Td>
                 <Td><div style={{ display: 'flex', gap: 4 }}>
                   <Btn variant="outline" size="small" onClick={() => updateStock(item.id, 1)}>+1</Btn>
-                  <Btn variant="outline" size="small" onClick={() => updateStock(item.id, -1)} disabled={item.stock <= 0}>-1</Btn>
+                  <Btn variant="outline" size="small" onClick={() => updateStock(item.id, -1)} disabled={stock <= 0}>-1</Btn>
                 </div></Td>
               </Tr>
             );

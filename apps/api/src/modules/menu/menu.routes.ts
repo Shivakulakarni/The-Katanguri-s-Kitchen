@@ -85,7 +85,7 @@ export async function menuRoutes(app: FastifyInstance) {
     const grouped: Record<number, any[]> = {};
     for (const mod of allMods) {
       if (!grouped[mod.dishId]) grouped[mod.dishId] = [];
-      grouped[mod.dishId].push({ name: mod.name, type: mod.type, options: mod.options, isRequired: mod.isRequired });
+      grouped[mod.dishId].push({ id: mod.id, name: mod.name, type: mod.type, options: mod.options, isRequired: mod.isRequired });
     }
     return grouped;
   });

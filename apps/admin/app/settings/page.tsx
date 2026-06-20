@@ -20,7 +20,7 @@ export default function SettingsPage() {
     try {
       setSaving(key);
       const h2 = getAuthHeaders();
-      const res = await fetch('/api/v1/admin/config', { method: 'PATCH', headers: h2, body: JSON.stringify({ key, value }) });
+      const res = await fetch('/api/v1/admin/config', { method: 'PATCH', headers: h2, body: JSON.stringify({ [key]: value }) });
       if (!res.ok) throw new Error('Failed to update setting');
       setSettings((prev: any) => ({ ...prev, [key]: value }));
       setSaving(null);
