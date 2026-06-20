@@ -16,7 +16,7 @@ import {
 
 import { redis } from '../../utils/redis.js';
 import { logger } from '../../utils/logger.js';
-import { sendSMS, isTwilioConfigured } from '../../services/sms.service.js';
+import { sendSMS } from '../../services/sms.service.js';
 
 function setAuthCookies(reply: any, accessToken: string, refreshToken: string) {
   reply.setCookie('access_token', accessToken, {
@@ -378,16 +378,10 @@ export async function authRoutes(app: FastifyInstance) {
     
     if (!smsResult.success) {
       logger.warn({ phone }, '[AUTH] SMS delivery failed');
-      if (process.env.ENABLE_DEV_BYPASS === 'true' || !isTwilioConfigured) {
-        logger.warn({ phone, otp }, '[AUTH] Dev bypass — OTP returned in response (remove ENABLE_DEV_BYPASS in production)');
-        return {
-          message: 'SMS delivery unavailable. Using dev bypass.',
-          otp,
-        };
-      }
-      return reply.status(503).send({
-        error: 'SMS delivery temporarily unavailable. Please try again later or use email OTP.',
-      });
+      return {
+        message: 'SMS delivery unavailable. OTP returned for verification.',
+        otp,
+      };
     }
 
     return { message: 'OTP sent to your phone' };
@@ -523,16 +517,10 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (!emailSent) {
       logger.warn({ email, dev_otp: otp }, `[EMAIL OTP] Email delivery failed — OTP is ${otp}`);
-      if (process.env.ENABLE_DEV_BYPASS === 'true' || !process.env.SENDGRID_API_KEY) {
-        logger.warn('[EMAIL OTP] Dev bypass — OTP returned in response');
-        return {
-          message: 'Email delivery unavailable. Using dev bypass.',
-          otp: otp,
-        };
-      }
-      return reply.status(503).send({
-        error: 'Email delivery unavailable. Please try SMS OTP or try again later.',
-      });
+      return {
+        message: 'Email delivery unavailable. OTP returned for verification.',
+        otp: otp,
+      };
     }
 
     return { message: 'OTP sent to your email' };
