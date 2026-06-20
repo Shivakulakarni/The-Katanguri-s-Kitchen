@@ -375,6 +375,27 @@ async function main() {
     });
   });
 
+  // ── Env Var Diagnostics (admin only — helps debug Render deployment) ──
+  app.get('/api/v1/admin/env-status', { preHandler: [authenticate, requireAdmin] }, async () => {
+    const check = (key: string) => {
+      const v = process.env[key] || '';
+      if (!v) return 'MISSING';
+      if (v.includes('CHANGE_ME') || v.includes('YOUR_')) return 'PLACEHOLDER';
+      return 'SET';
+    };
+    return {
+      database: { DATABASE_URL: check('DATABASE_URL') },
+      redis: { REDIS_URL: check('REDIS_URL') },
+      auth: { JWT_SECRET: check('JWT_SECRET'), JWT_REFRESH_SECRET: check('JWT_REFRESH_SECRET'), COOKIE_SECRET: check('COOKIE_SECRET') },
+      supabase: { SUPABASE_URL: check('SUPABASE_URL'), SUPABASE_ANON_KEY: check('SUPABASE_ANON_KEY'), SUPABASE_SERVICE_ROLE_KEY: check('SUPABASE_SERVICE_ROLE_KEY'), SUPABASE_JWT_SECRET: check('SUPABASE_JWT_SECRET') },
+      email: { RESEND_API_KEY: check('RESEND_API_KEY'), RESEND_FROM_EMAIL: check('RESEND_FROM_EMAIL') },
+      sms: { TWILIO_ACCOUNT_SID: check('TWILIO_ACCOUNT_SID'), TWILIO_AUTH_TOKEN: check('TWILIO_AUTH_TOKEN'), TWILIO_PHONE_NUMBER: check('TWILIO_PHONE_NUMBER') },
+      payments: { STRIPE_SECRET_KEY: check('STRIPE_SECRET_KEY'), STRIPE_WEBHOOK_SECRET: check('STRIPE_WEBHOOK_SECRET') },
+      ai: { GROQ_API_KEY: check('GROQ_API_KEY'), GEMINI_API_KEY: check('GEMINI_API_KEY') },
+      misc: { APP_URL: check('APP_URL'), CORS_ORIGINS: check('CORS_ORIGINS'), ADMIN_EMAILS: check('ADMIN_EMAILS'), ENABLE_DEV_BYPASS: check('ENABLE_DEV_BYPASS') },
+    };
+  });
+
   // ── Prometheus Metrics ──
   app.get('/api/v1/metrics', { preHandler: [authenticate, requireAdmin] }, async (_request, reply) => {
     try {

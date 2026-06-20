@@ -235,7 +235,6 @@ export const validateLocationSchema = z.object({
 // ── Payment ──
 export const createPaymentIntentSchema = z.object({
   orderId: z.number().int().positive(),
-  amount: z.number().positive().max(999999),
   currency: z.string().length(3).optional(),
   idempotencyKey: z.string().optional(),
 }).passthrough();
