@@ -675,6 +675,21 @@ async function main() {
     if (serverToClose) {
       await new Promise<void>((resolve) => serverToClose.close(() => resolve()));
     }
+
+    // One-time production cleanup: deactivate test/qa categories and dishes
+    if (isProduction) {
+      try {
+        const { categories, dishes } = await import('./db/schemas/menu.js');
+        const testIds = [15, 16];
+        await db.update(categories).set({ isActive: false }).where(drizzleOrm.inArray(categories.id, testIds));
+        await db.update(dishes).set({ isAvailable: false }).where(drizzleOrm.like(dishes.name, '%Test%'));
+        await db.update(dishes).set({ isAvailable: false }).where(drizzleOrm.like(dishes.name, '%QA%'));
+        logger.info('[Startup] Cleaned test/qa categories and dishes');
+      } catch (err: any) {
+        logger.warn({ err: err.message }, '[Startup] Test data cleanup skipped');
+      }
+    }
+
     await app.listen({ port: PORT, host: '0.0.0.0' });
     logger.info({ port: PORT }, '[Server] Kitchen API running');
     failoverManager.initialize();
