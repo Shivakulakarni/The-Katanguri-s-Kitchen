@@ -6,7 +6,12 @@ function escapeHtml(str: string): string {
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL || process.env.RESEND_FROM_EMAIL || 'orders@thekatanguriskitchen.com';
+const FROM_EMAIL_DEFAULT = 'The Katanguri\'s Kitchen <onboarding@resend.dev>';
+const FROM_EMAIL_VERIFIED = process.env.RESEND_FROM_EMAIL || '';
+
+function getFromEmail(): string {
+  return FROM_EMAIL_VERIFIED || FROM_EMAIL_DEFAULT;
+}
 const APP_NAME = 'The Katanguri\'s Kitchen';
 const APP_URL = process.env.APP_URL || 'https://the-katanguris-kitchen.vercel.app';
 
@@ -54,7 +59,7 @@ async function send(options: { to: string; subject: string; html: string }): Pro
 
   try {
     const { error } = await resend.emails.send({
-      from: FROM_EMAIL,
+      from: getFromEmail(),
       to: [options.to],
       subject: options.subject,
       html: options.html,
