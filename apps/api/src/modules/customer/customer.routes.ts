@@ -5,6 +5,7 @@ import { orders } from '../../db/schemas/order.js';
 import { dishes } from '../../db/schemas/menu.js';
 import { eq, desc, sql, count, and } from 'drizzle-orm';
 import { redis } from '../../utils/redis.js';
+import { logger } from '../../utils/logger.js';
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
 import { validateBody } from '../../lib/validate.js';
 import { createAddressSchema, updateAddressSchema, updateProfileSchema, createFavoriteSchema } from '../../lib/validation.js';
@@ -162,7 +163,7 @@ export async function customerRoutes(app: FastifyInstance) {
   // ── Favorites CRUD ──
 
   // List favorites
-  app.get('/api/v1/customer/favorites', async (request, reply) => {
+  app.get('/api/v1/customer/favorites', async (request) => {
     try {
     const user = request.user;
     const cacheKey = `cache:customer:favorites:${user.customerId}`;
@@ -271,20 +272,18 @@ export async function customerRoutes(app: FastifyInstance) {
 
     let favoriteCountValue = 0;
     try {
-      const [fc] = await db.select({ value: count() })
-        .from(customerFavorites).where(eq(customerFavorites.customerId, user.customerId));
-      favoriteCountValue = fc?.value || 0;
+      const [fc] = await db.execute(sql`select count(*)::int as value from customer_favorites where customer_id = ${user.customerId}`) as any;
+      favoriteCountValue = fc?.value ?? 0;
     } catch (e: any) {
-      console.error('[STATS] customer_favorites query failed:', e?.message);
+      logger.warn({ err: e?.message }, '[STATS] customer_favorites query failed (table may not exist in prod)');
     }
 
     let addressCountValue = 0;
     try {
-      const [ac] = await db.select({ value: count() })
-        .from(customerAddresses).where(eq(customerAddresses.customerId, user.customerId));
-      addressCountValue = ac?.value || 0;
+      const [ac] = await db.execute(sql`select count(*)::int as value from customer_addresses where customer_id = ${user.customerId}`) as any;
+      addressCountValue = ac?.value ?? 0;
     } catch (e: any) {
-      console.error('[STATS] customer_addresses query failed:', e?.message);
+      logger.warn({ err: e?.message }, '[STATS] customer_addresses query failed');
     }
 
     const [lastOrder] = await db.select({
@@ -318,7 +317,7 @@ export async function customerRoutes(app: FastifyInstance) {
     await redis.setex(cacheKey, CUSTOMER_STATS_CACHE_TTL, JSON.stringify(result));
     return result;
     } catch (err: any) {
-      console.error('[STATS] Error:', err?.message, err?.cause);
+      logger.error({ err: err?.message }, '[STATS] Error');
       return reply.status(500).send({ error: 'Failed to load stats', details: err?.message });
     }
   });
