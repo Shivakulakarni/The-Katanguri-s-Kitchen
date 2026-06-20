@@ -10,7 +10,7 @@ services:
       npm install --include=dev
       npm run build -w packages/shared
       npm run build -w apps/api
-    startCommand: cd apps/api && node dist/index.js
+    startCommand: cd apps/api && node boot.mjs
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV

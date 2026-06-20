@@ -1,20 +1,25 @@
 import 'dotenv/config';
 import http from 'http';
 
-// ── OPEN PORT IMMEDIATELY — before ANY heavy imports ──
-// ESM hoists all static imports above code. Only 2 static imports here
-// so the bootstrap server opens the port within milliseconds.
-const PORT = parseInt(process.env.PORT || '3001');
+// ── BOOT SERVER — only used when started via boot.mjs ──
+// When started via boot.mjs, globalThis.__bootServer is already listening.
+// When started directly (node dist/index.js), we create our own.
+const PORT = parseInt(process.env.PORT || '10000', 10);
 const serverStartTime = Date.now();
 const isProduction = process.env.NODE_ENV === 'production';
 
-const bootServer = http.createServer((_req, res) => {
-  res.writeHead(200, { 'Content-Type': 'application/json' });
-  res.end(JSON.stringify({ status: 'ok', bootstrapping: true, port: PORT }));
-});
-bootServer.listen(PORT, '0.0.0.0', () => {
-  console.log(`[BOOT] Port ${PORT} opened for health checks`);
-});
+const existingBootServer = (globalThis as any).__bootServer as import('http').Server | undefined;
+
+let bootServer: import('http').Server | null = null;
+if (!existingBootServer) {
+  bootServer = http.createServer((_req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', bootstrapping: true, port: PORT }));
+  });
+  bootServer.listen(PORT, '0.0.0.0', () => {
+    console.log(`[BOOT] Port ${PORT} opened for health checks`);
+  });
+}
 
 let isShuttingDown = false;
 
@@ -666,7 +671,10 @@ async function main() {
   process.on('SIGINT', () => shutdown('SIGINT'));
 
   try {
-    await new Promise<void>((resolve) => bootServer.close(() => resolve()));
+    const serverToClose = existingBootServer || bootServer;
+    if (serverToClose) {
+      await new Promise<void>((resolve) => serverToClose.close(() => resolve()));
+    }
     await app.listen({ port: PORT, host: '0.0.0.0' });
     logger.info({ port: PORT }, '[Server] Kitchen API running');
     failoverManager.initialize();
