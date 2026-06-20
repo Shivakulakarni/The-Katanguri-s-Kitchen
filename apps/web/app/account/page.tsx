@@ -355,8 +355,8 @@ export default function AccountPage() {
                       </div>
                       <button onClick={() => handleRemoveFavorite(fav.dishId)}
                         aria-label={`Remove ${fav.dishName} from favorites`}
-                        style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
-                        ❤️
+                        style={{ position: 'absolute', top: 8, right: 8, width: 28, height: 28, borderRadius: '50%', border: 'none', background: '#e23744', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.1)' }}>
+                        <span style={{ color: '#fff', lineHeight: 1 }}>♥</span>
                       </button>
                     </div>
                   ))}

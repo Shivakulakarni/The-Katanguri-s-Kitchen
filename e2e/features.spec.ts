@@ -65,9 +65,9 @@ test.describe('AI Chatbot', () => {
     const dialog = page.getByRole('dialog', { name: 'AI Assistant Chat' });
     await expect(dialog).toBeVisible();
 
-    await expect(dialog.getByText('Suggest veg recommendations')).toBeVisible();
-    await expect(dialog.getByText('Check my order status')).toBeVisible();
-    await expect(dialog.getByText('Is there non-veg today?')).toBeVisible();
+    await expect(dialog.getByText('Recommend dishes')).toBeVisible();
+    await expect(dialog.getByText('Plan a meal')).toBeVisible();
+    await expect(dialog.getByText('Veg options')).toBeVisible();
   });
 
   test('sends a message and receives response', async ({ page }) => {

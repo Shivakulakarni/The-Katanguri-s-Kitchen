@@ -356,7 +356,7 @@ function AuthForm() {
         {!isPhoneMode && (
           <div style={{ marginBottom: 24 }}>
             <label htmlFor="email" style={{ fontSize: 12, fontWeight: 700, color: 'var(--charcoal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'block' }}>Email Address</label>
-            <input id="email" name="email" placeholder="you@example.com" type="email" value={email}
+            <input id="email" name="email" placeholder="you@gmail.com" type="email" value={email}
               onChange={e => setEmail(e.target.value)}
               disabled={otpStatus === 'sent'}
               style={{
@@ -373,7 +373,7 @@ function AuthForm() {
         {(otpStatus === 'sent' || otpExpired) && (
           <div style={{ marginBottom: 24, animation: 'fadeInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
             <label htmlFor="otp-0" style={{ fontSize: 12, fontWeight: 700, color: otpExpired ? 'var(--critical)' : 'var(--charcoal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, display: 'block' }}>
-              {otpExpired ? 'OTP Expired' : 'Enter 6-Digit Code'}
+              {otpExpired ? 'OTP Expired' : 'Enter OTP'}
             </label>
             <div style={{ display: 'flex', gap: 8 }}>
               {[0, 1, 2, 3, 4, 5].map(i => (
@@ -480,7 +480,7 @@ function AuthForm() {
               <div className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--on-primary)', borderTopColor: 'transparent', borderRadius: '50%' }} />
               {otpStatus === 'idle' ? 'Sending Code...' : 'Verifying Code...'}
             </div>
-          ) : otpExpired ? 'Request New OTP' : otpStatus === 'idle' ? 'Send Verification Code' : isLogin ? 'Verify & Sign In' : 'Verify & Sign Up'}
+          ) : otpExpired ? 'Request New OTP' : otpStatus === 'idle' ? 'Send OTP' : isLogin ? 'Verify & Sign In' : 'Verify & Sign Up'}
         </button>
 
         {/* Cooldown indicator */}

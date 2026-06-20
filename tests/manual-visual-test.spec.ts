@@ -179,11 +179,14 @@ test.describe('Manual Test — Admin Dashboard', () => {
     await page.route('**/*.{woff,woff2,ttf}', r => r.abort());
     await page.goto(`${ADMIN}/admin/login`, { waitUntil: 'networkidle', timeout: 25000 });
     await page.waitForTimeout(2000);
+    await page.locator('button:has-text("Sign in with Email OTP")').click();
+    await page.waitForTimeout(500);
     await page.locator('input[type="email"]').fill('admin@katanguri.com');
-    await page.locator('input[type="password"]').fill('admin123');
-    const signInBtn = page.getByRole('button', { name: 'Sign In' });
-    await expect(signInBtn).toBeEnabled({ timeout: 10000 });
-    await signInBtn.click();
+    await page.locator('button:has-text("Send Code")').click();
+    const otpInput = page.locator('input[placeholder="000000"]');
+    await expect(otpInput).toBeVisible({ timeout: 5000 });
+    await otpInput.fill('123456');
+    await page.locator('button:has-text("Verify & Sign In")').click();
     await page.waitForURL(url => !url.pathname.includes('/login'), { timeout: 15000 });
     await page.waitForTimeout(2000);
   }
@@ -197,10 +200,8 @@ test.describe('Manual Test — Admin Dashboard', () => {
 
     const heading = page.locator('h1, h2').filter({ hasText: /Admin|Dashboard|Sign/i }).first();
     if (await heading.count() > 0) console.log(`  Heading: ${await heading.textContent()}`);
-    const emailInput = page.locator('input[type="email"]');
-    const passInput = page.locator('input[type="password"]');
-    await expect(emailInput).toBeVisible();
-    await expect(passInput).toBeVisible();
+    const emailOtpBtn = page.locator('button:has-text("Sign in with Email OTP")');
+    await expect(emailOtpBtn).toBeVisible();
     console.log('✅ Admin Login Page — PASS');
   });
 

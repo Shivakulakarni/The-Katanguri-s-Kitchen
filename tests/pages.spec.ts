@@ -70,7 +70,7 @@ test.describe('Admin Pages', () => {
 
   test('admin login page renders', async ({ page }) => {
     await page.goto('http://127.0.0.1:3002/admin/login');
-    await expect(page.getByText('Sign in to manage your kitchen')).toBeVisible();
-    await expect(page.getByPlaceholder('admin@kitchen.app')).toBeVisible();
+    await expect(page.getByText('Sign in to access the admin dashboard')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in with Email OTP' })).toBeVisible();
   });
 });

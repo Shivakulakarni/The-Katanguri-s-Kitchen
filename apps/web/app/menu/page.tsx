@@ -215,11 +215,11 @@ export default function MenuPage() {
           <input placeholder="Search dishes..." value={search}
             onChange={e => setSearch(e.target.value)}
             aria-label="Search dishes"
-            style={{ width: '100%', padding: '12px 16px 12px 44px', borderRadius: 12, border: '2px solid #f0f0f0', fontSize: 15, background: 'var(--bg-secondary, #fff)' }} />
+            style={{ width: '100%', padding: '12px 16px 12px 44px', borderRadius: 12, border: '2px solid #e0e0e0', fontSize: 15, background: '#fff', color: '#1c1c1c' }} />
         </div>
         <select value={sort} onChange={e => setSort(e.target.value)}
           aria-label="Sort dishes"
-          style={{ padding: '12px 16px', borderRadius: 12, border: '2px solid #f0f0f0', fontSize: 14, fontWeight: 600, background: 'var(--bg-secondary, #fff)', cursor: 'pointer' }}>
+          style={{ padding: '12px 16px', borderRadius: 12, border: '2px solid #e0e0e0', fontSize: 14, fontWeight: 600, background: '#fff', color: '#1c1c1c', cursor: 'pointer' }}>
           <option value="popularity">Sort: Popularity</option>
           <option value="for-you">✨ Sort: For You</option>
           <option value="price-low">Sort: Price ↑</option>
@@ -311,13 +311,15 @@ export default function MenuPage() {
                   position: 'absolute', top: 8, right: 8, zIndex: 10,
                   width: 36, height: 36, borderRadius: '50%',
                   border: 'none', cursor: 'pointer',
-                  background: favorites.has(dish.id) ? 'rgba(226, 55, 68, 0.15)' : 'rgba(255, 255, 255, 0.9)',
+                  background: favorites.has(dish.id) ? '#e23744' : '#f0f0f0',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 16, transition: 'all 0.2s',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                 }}
               >
-                {favorites.has(dish.id) ? '❤️' : '🤍'}
+                <span style={{ color: favorites.has(dish.id) ? '#fff' : '#e23744', lineHeight: 1 }}>
+                  {favorites.has(dish.id) ? '♥' : '♡'}
+                </span>
               </button>
 
               <div style={{
