@@ -532,7 +532,7 @@ export async function authRoutes(app: FastifyInstance) {
       const resendKey = process.env.RESEND_API_KEY || '';
       if (resendKey) {
         try {
-          const from = process.env.RESEND_FROM_EMAIL || 'The Katanguris Kitchen <onboarding@resend.dev>';
+          const from = 'The Katanguris Kitchen <onboarding@resend.dev>';
           const res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {

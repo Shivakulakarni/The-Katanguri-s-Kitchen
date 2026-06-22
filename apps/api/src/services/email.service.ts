@@ -45,10 +45,13 @@ async function sendViaSendGrid(options: { to: string; subject: string; html: str
 // ── Resend Provider (fallback — uses REST API, no SDK needed) ──
 async function sendViaResend(options: { to: string; subject: string; html: string }): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY || '';
-  if (!apiKey) return false;
+  if (!apiKey) {
+    logger.warn('[EMAIL] Resend: no API key');
+    return false;
+  }
 
   try {
-    const from = process.env.RESEND_FROM_EMAIL || `${APP_NAME} <onboarding@resend.dev>`;
+    const from = 'The Katanguris Kitchen <onboarding@resend.dev>';
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
