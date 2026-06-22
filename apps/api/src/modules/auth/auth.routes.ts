@@ -511,12 +511,22 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(429).send({ error: 'Too many requests. Please try again in 15 minutes.' });
     }
 
+    // Use Supabase Auth for email OTP (uses Supabase's verified sender)
+    if (supabaseAdmin) {
+      const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
+      if (!error) {
+        return {
+          message: 'OTP sent to your email',
+          ...(process.env.NODE_ENV !== 'production' ? { otp: '123456' } : {}),
+        };
+      }
+      logger.warn({ email, error: error.message }, '[EMAIL OTP] Supabase email OTP failed');
+    }
+
+    // Fallback: local OTP with SendGrid/Resend
     const otp = generateOtp();
     await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
 
-    if (process.env.NODE_ENV !== 'production') logger.debug({ email, otp }, '[EMAIL OTP] Generated OTP');
-
-    // Try sending via email providers
     let sent = false;
     try {
       const { sendOTP } = await import('../../services/email.service.js');
@@ -527,7 +537,6 @@ export async function authRoutes(app: FastifyInstance) {
 
     if (!sent) {
       logger.warn({ email }, '[EMAIL OTP] Email delivery failed');
-      // In dev, return OTP so user can still log in
       if (process.env.NODE_ENV !== 'production') {
         return {
           message: 'Email delivery failed. Use the OTP below to log in.',
@@ -555,6 +564,19 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(429).send({ error: 'Too many verification attempts. Please try again in 15 minutes.' });
     }
 
+    // Try Supabase verification first
+    if (supabaseAdmin) {
+      const { data, error } = await supabaseAdmin.auth.verifyOtp({ email, token: otp, type: 'email' });
+      if (!error) {
+        const customer = await upsertCustomerFromSupabase(data.user, { name });
+        const tokens = await generateTokenPair(customer.id, 'customer');
+        setAuthCookies(reply, tokens.accessToken, tokens.refreshToken);
+        return { ...tokens, user: { id: customer.id, name: customer.name, email: customer.email, phone: customer.phone, role: 'customer' } };
+      }
+      logger.warn({ email, error: error.message }, '[EMAIL VERIFY] Supabase verify failed, trying local');
+    }
+
+    // Fallback: local OTP verification
     const key = `email:${email}`;
     const stored = await getOtp(key);
     const isDevBypass = process.env.NODE_ENV !== 'production' && otp === '123456';
