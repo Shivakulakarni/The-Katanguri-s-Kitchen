@@ -5,7 +5,7 @@
  * Each dish has a unique, visually distinct restaurant-quality photo.
  */
 
-export const FALLBACK_DISH_IMAGE = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=400&fit=crop';
+export const FALLBACK_DISH_IMAGE = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop';
 
 const CATEGORY_IMAGES: Record<string, string> = {
   'SOUPS': 'https://images.unsplash.com/photo-1547592166-23ac45744acd?w=600&h=400&fit=crop',
@@ -248,10 +248,6 @@ export function getDishImage(
     if (!found) {
       resolvedUrl = dbImageUrl || FALLBACK_DISH_IMAGE;
     }
-  }
-
-  if (resolvedUrl && (resolvedUrl.startsWith('https://images.unsplash.com') || resolvedUrl.startsWith('https://images.pexels.com'))) {
-    return `/api/image-proxy?url=${encodeURIComponent(resolvedUrl)}`;
   }
 
   return resolvedUrl;

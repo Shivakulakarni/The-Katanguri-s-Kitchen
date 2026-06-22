@@ -133,7 +133,7 @@ export default function HomePageContent() {
               border: '1px solid var(--hairline-soft)', position: 'relative',
             }}>
               <img
-                src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800&h=800&fit=crop"
+                src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&h=400&fit=crop"
                 alt="Delicious Biryani from The Katanguri's Kitchen"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 loading="eager"
