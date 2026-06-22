@@ -522,13 +522,7 @@ export async function authRoutes(app: FastifyInstance) {
         logger.warn({ email, error: redisErr?.message }, '[EMAIL OTP] Redis store failed, continuing');
       }
 
-      if (process.env.NODE_ENV !== 'production') logger.debug({ email, otp }, '[EMAIL OTP] Generated OTP');
-
-      // Try sending 6-digit OTP via email service (direct REST, no SDK)
-      let sent = false;
-      let emailDetail = '';
-
-      // Attempt 1: Resend API (direct fetch)
+      // Attempt 1: Send 6-digit OTP via Resend API
       const resendKey = process.env.RESEND_API_KEY || '';
       if (resendKey) {
         try {
@@ -546,31 +540,22 @@ export async function authRoutes(app: FastifyInstance) {
               html: `<p>Your verification code is: <b>${otp}</b></p><p>This code expires in 10 minutes.</p>`,
             }),
           });
-          const respBody = await res.json();
+
           if (res.ok) {
-            sent = true;
-            emailDetail = `Resend OK: ${(respBody as any)?.id}`;
-          } else {
-            emailDetail = `Resend ${res.status}: ${JSON.stringify(respBody)}`;
-            logger.warn({ email, status: res.status, body: respBody }, '[EMAIL OTP] Resend API error');
+            return {
+              message: 'OTP sent to your email',
+              ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
+            };
           }
+
+          const respBody = await res.json();
+          logger.warn({ email, status: res.status, body: respBody }, '[EMAIL OTP] Resend API error');
         } catch (err: any) {
-          emailDetail = `Resend fetch error: ${err?.message}`;
           logger.warn({ email, error: err?.message }, '[EMAIL OTP] Resend fetch failed');
         }
-      } else {
-        emailDetail = 'No RESEND_API_KEY set';
-      }
-
-      if (sent) {
-        return {
-          message: 'OTP sent to your email',
-          ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
-        };
       }
 
       // Attempt 2: Supabase magic link fallback
-      logger.warn({ email, detail: emailDetail }, '[EMAIL OTP] Primary email failed, trying Supabase');
       if (supabaseAdmin) {
         const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
         if (!error) {
@@ -579,7 +564,6 @@ export async function authRoutes(app: FastifyInstance) {
             ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
           };
         }
-        logger.warn({ email, error: error.message }, '[EMAIL OTP] Supabase fallback also failed');
       }
 
       // Last resort: return OTP in response for dev
@@ -587,11 +571,9 @@ export async function authRoutes(app: FastifyInstance) {
         return {
           message: 'Email delivery failed. Use the OTP below to log in.',
           otp,
-          smsFailed: true,
-          detail: emailDetail,
         };
       }
-      return reply.status(503).send({ error: 'Email delivery failed.', detail: emailDetail });
+      return reply.status(503).send({ error: 'Email delivery failed. Please try again later.' });
     } catch (err: any) {
       logger.error({ error: err?.message, stack: err?.stack }, '[EMAIL OTP] Unhandled error');
       return reply.status(500).send({ error: 'Internal server error' });
