@@ -526,11 +526,14 @@ export async function authRoutes(app: FastifyInstance) {
 
       // Try sending 6-digit OTP via Resend/SendGrid email service
       let sent = false;
+      let emailError = '';
       try {
         const emailMod = await import('../../services/email.service.js');
         sent = await emailMod.sendOTP(email, otp, 'login');
+        if (!sent) emailError = 'sendOTP returned false';
       } catch (err: any) {
-        logger.warn({ email, error: err?.message }, '[EMAIL OTP] Email service threw error');
+        emailError = err?.message || String(err);
+        logger.warn({ email, error: emailError }, '[EMAIL OTP] Email service threw error');
       }
 
       if (sent) {
@@ -541,7 +544,7 @@ export async function authRoutes(app: FastifyInstance) {
       }
 
       // Fallback: Supabase sends magic link (not ideal, but better than nothing)
-      logger.warn({ email }, '[EMAIL OTP] Resend/SendGrid failed, falling back to Supabase');
+      logger.warn({ email, emailError }, '[EMAIL OTP] Resend/SendGrid failed, falling back to Supabase');
       if (supabaseAdmin) {
         const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
         if (!error) {
@@ -550,6 +553,7 @@ export async function authRoutes(app: FastifyInstance) {
             ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
           };
         }
+        logger.warn({ email, error: error.message }, '[EMAIL OTP] Supabase fallback also failed');
       }
 
       // Last resort: return OTP in response for dev
@@ -560,7 +564,7 @@ export async function authRoutes(app: FastifyInstance) {
           smsFailed: true,
         };
       }
-      return reply.status(503).send({ error: 'Email delivery failed. Please try again later.' });
+      return reply.status(503).send({ error: 'Email delivery failed. Please try again later.', detail: emailError || 'all providers failed' });
     } catch (err: any) {
       logger.error({ error: err?.message, stack: err?.stack }, '[EMAIL OTP] Unhandled error');
       return reply.status(500).send({ error: 'Internal server error' });
