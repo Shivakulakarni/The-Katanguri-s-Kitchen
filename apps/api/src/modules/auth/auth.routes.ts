@@ -511,22 +511,13 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(429).send({ error: 'Too many requests. Please try again in 15 minutes.' });
     }
 
-    // Use Supabase Auth for email OTP (uses Supabase's verified sender)
-    if (supabaseAdmin) {
-      const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
-      if (!error) {
-        return {
-          message: 'OTP sent to your email',
-          ...(process.env.NODE_ENV !== 'production' ? { otp: '123456' } : {}),
-        };
-      }
-      logger.warn({ email, error: error.message }, '[EMAIL OTP] Supabase email OTP failed');
-    }
-
-    // Fallback: local OTP with SendGrid/Resend
+    // Generate OTP and store in Redis
     const otp = generateOtp();
     await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
 
+    if (process.env.NODE_ENV !== 'production') logger.debug({ email, otp }, '[EMAIL OTP] Generated OTP');
+
+    // Try sending 6-digit OTP via Resend/SendGrid email service
     let sent = false;
     try {
       const { sendOTP } = await import('../../services/email.service.js');
@@ -535,22 +526,34 @@ export async function authRoutes(app: FastifyInstance) {
       logger.warn({ email, error: err?.message }, '[EMAIL OTP] Email service threw error');
     }
 
-    if (!sent) {
-      logger.warn({ email }, '[EMAIL OTP] Email delivery failed');
-      if (process.env.NODE_ENV !== 'production') {
-        return {
-          message: 'Email delivery failed. Use the OTP below to log in.',
-          otp,
-          smsFailed: true,
-        };
-      }
-      return reply.status(503).send({ error: 'Email delivery failed. Please try again later.' });
+    if (sent) {
+      return {
+        message: 'OTP sent to your email',
+        ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
+      };
     }
 
-    return {
-      message: 'OTP sent to your email',
-      ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
-    };
+    // Fallback: Supabase sends magic link (not ideal, but better than nothing)
+    logger.warn({ email }, '[EMAIL OTP] Resend/SendGrid failed, falling back to Supabase');
+    if (supabaseAdmin) {
+      const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
+      if (!error) {
+        return {
+          message: 'Sign-in link sent to your email (check spam folder for 6-digit code)',
+          ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
+        };
+      }
+    }
+
+    // Last resort: return OTP in response for dev
+    if (process.env.NODE_ENV !== 'production') {
+      return {
+        message: 'Email delivery failed. Use the OTP below to log in.',
+        otp,
+        smsFailed: true,
+      };
+    }
+    return reply.status(503).send({ error: 'Email delivery failed. Please try again later.' });
   });
 
   // ── Verify Email OTP (login or register) ──
