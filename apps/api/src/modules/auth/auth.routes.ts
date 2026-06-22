@@ -524,16 +524,42 @@ export async function authRoutes(app: FastifyInstance) {
 
       if (process.env.NODE_ENV !== 'production') logger.debug({ email, otp }, '[EMAIL OTP] Generated OTP');
 
-      // Try sending 6-digit OTP via Resend/SendGrid email service
+      // Try sending 6-digit OTP via email service (direct REST, no SDK)
       let sent = false;
-      let emailError = '';
-      try {
-        const emailMod = await import('../../services/email.service.js');
-        sent = await emailMod.sendOTP(email, otp, 'login');
-        if (!sent) emailError = 'sendOTP returned false';
-      } catch (err: any) {
-        emailError = err?.message || String(err);
-        logger.warn({ email, error: emailError }, '[EMAIL OTP] Email service threw error');
+      let emailDetail = '';
+
+      // Attempt 1: Resend API (direct fetch)
+      const resendKey = process.env.RESEND_API_KEY || '';
+      if (resendKey) {
+        try {
+          const from = process.env.RESEND_FROM_EMAIL || 'The Katanguris Kitchen <onboarding@resend.dev>';
+          const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from,
+              to: [email],
+              subject: `Your login Code — The Katanguri's Kitchen`,
+              html: `<p>Your verification code is: <b>${otp}</b></p><p>This code expires in 10 minutes.</p>`,
+            }),
+          });
+          const respBody = await res.json();
+          if (res.ok) {
+            sent = true;
+            emailDetail = `Resend OK: ${(respBody as any)?.id}`;
+          } else {
+            emailDetail = `Resend ${res.status}: ${JSON.stringify(respBody)}`;
+            logger.warn({ email, status: res.status, body: respBody }, '[EMAIL OTP] Resend API error');
+          }
+        } catch (err: any) {
+          emailDetail = `Resend fetch error: ${err?.message}`;
+          logger.warn({ email, error: err?.message }, '[EMAIL OTP] Resend fetch failed');
+        }
+      } else {
+        emailDetail = 'No RESEND_API_KEY set';
       }
 
       if (sent) {
@@ -543,8 +569,8 @@ export async function authRoutes(app: FastifyInstance) {
         };
       }
 
-      // Fallback: Supabase sends magic link (not ideal, but better than nothing)
-      logger.warn({ email, emailError }, '[EMAIL OTP] Resend/SendGrid failed, falling back to Supabase');
+      // Attempt 2: Supabase magic link fallback
+      logger.warn({ email, detail: emailDetail }, '[EMAIL OTP] Primary email failed, trying Supabase');
       if (supabaseAdmin) {
         const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
         if (!error) {
@@ -562,9 +588,10 @@ export async function authRoutes(app: FastifyInstance) {
           message: 'Email delivery failed. Use the OTP below to log in.',
           otp,
           smsFailed: true,
+          detail: emailDetail,
         };
       }
-      return reply.status(503).send({ error: 'Email delivery failed. Please try again later.', detail: emailError || 'all providers failed' });
+      return reply.status(503).send({ error: 'Email delivery failed.', detail: emailDetail });
     } catch (err: any) {
       logger.error({ error: err?.message, stack: err?.stack }, '[EMAIL OTP] Unhandled error');
       return reply.status(500).send({ error: 'Internal server error' });
