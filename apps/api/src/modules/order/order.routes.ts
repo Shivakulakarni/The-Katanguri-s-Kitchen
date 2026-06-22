@@ -224,6 +224,9 @@ export async function orderRoutes(app: FastifyInstance) {
       return reply.status(409).send({ error: 'Order was modified by another request' });
     }
 
+    await redis.del(`cache:orders:detail:${id}`);
+    await redis.del(`cache:orders:list:${order.customerId}`);
+
     await publishEvent('order.cancelled', { orderId: order.id, customerId: user.customerId, status: 'CANCELLED' });
     return { order: updated };
   });
@@ -269,6 +272,9 @@ export async function orderRoutes(app: FastifyInstance) {
     if (!updated) {
       return reply.status(409).send({ error: 'Order was modified by another request' });
     }
+
+    await redis.del(`cache:orders:detail:${id}`);
+    await redis.del(`cache:orders:list:${order.customerId}`);
 
     const eventMap: Record<string, string> = {
       PREPARING: 'order.preparation_started',
