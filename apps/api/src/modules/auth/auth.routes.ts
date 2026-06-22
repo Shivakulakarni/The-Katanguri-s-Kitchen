@@ -17,7 +17,6 @@ import {
 import { redis } from '../../utils/redis.js';
 import { logger } from '../../utils/logger.js';
 import { sendSMS } from '../../services/sms.service.js';
-import { sendOTP as sendEmailOTP } from '../../services/email.service.js';
 
 function setAuthCookies(reply: any, accessToken: string, refreshToken: string) {
   reply.setCookie('access_token', accessToken, {
@@ -528,7 +527,8 @@ export async function authRoutes(app: FastifyInstance) {
       // Try sending 6-digit OTP via Resend/SendGrid email service
       let sent = false;
       try {
-        sent = await sendEmailOTP(email, otp, 'login');
+        const emailMod = await import('../../services/email.service.js');
+        sent = await emailMod.sendOTP(email, otp, 'login');
       } catch (err: any) {
         logger.warn({ email, error: err?.message }, '[EMAIL OTP] Email service threw error');
       }
