@@ -1,4 +1,3 @@
-import { Resend } from 'resend';
 import { logger } from '../utils/logger.js';
 
 function escapeHtml(str: string): string {
@@ -43,35 +42,36 @@ async function sendViaSendGrid(options: { to: string; subject: string; html: str
   }
 }
 
-// ── Resend Provider (fallback) ──
-let _resend: Resend | null = null;
-function getResend(): Resend | null {
-  if (_resend) return _resend;
-  const key = process.env.RESEND_API_KEY || '';
-  if (!key) return null;
-  _resend = new Resend(key);
-  logger.info('[EMAIL] Resend initialized');
-  return _resend;
-}
-
+// ── Resend Provider (fallback — uses REST API, no SDK needed) ──
 async function sendViaResend(options: { to: string; subject: string; html: string }): Promise<boolean> {
-  const resend = getResend();
-  if (!resend) return false;
+  const apiKey = process.env.RESEND_API_KEY || '';
+  if (!apiKey) return false;
 
   try {
-    const from = process.env.RESEND_FROM_EMAIL || `"${APP_NAME}" <onboarding@resend.dev>`;
-    const { error } = await resend.emails.send({
-      from,
-      to: [options.to],
-      subject: options.subject,
-      html: options.html,
+    const from = process.env.RESEND_FROM_EMAIL || `${APP_NAME} <onboarding@resend.dev>`;
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [options.to],
+        subject: options.subject,
+        html: options.html,
+      }),
     });
-    if (error) {
-      logger.warn({ err: error, to: options.to }, '[EMAIL] Resend error');
-      return false;
+
+    const responseBody = await res.json();
+
+    if (res.ok || res.status === 200 || res.status === 201) {
+      logger.info({ to: options.to, subject: options.subject, id: (responseBody as any)?.id }, '[EMAIL] Sent via Resend');
+      return true;
     }
-    logger.info({ to: options.to, subject: options.subject }, '[EMAIL] Sent via Resend');
-    return true;
+
+    logger.warn({ to: options.to, status: res.status, body: responseBody }, '[EMAIL] Resend error');
+    return false;
   } catch (err: any) {
     logger.warn({ err: err.message, to: options.to }, '[EMAIL] Resend failed');
     return false;
