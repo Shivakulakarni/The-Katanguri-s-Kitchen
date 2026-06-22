@@ -17,6 +17,7 @@ import {
 import { redis } from '../../utils/redis.js';
 import { logger } from '../../utils/logger.js';
 import { sendSMS } from '../../services/sms.service.js';
+import { sendOTP as sendEmailOTP } from '../../services/email.service.js';
 
 function setAuthCookies(reply: any, accessToken: string, refreshToken: string) {
   reply.setCookie('access_token', accessToken, {
@@ -501,59 +502,69 @@ export async function authRoutes(app: FastifyInstance) {
 
   // ── Send Email OTP ──
   app.post('/api/v1/auth/email-otp', async (request, reply) => {
-    const body = await validateBody(request, reply, emailOtpSchema);
-    if (body === null) return;
-    const { email } = body;
-
-    // Rate limit
-    const ip = (request.headers['x-forwarded-for'] as string) || request.ip || 'unknown';
-    if (!(await checkAuthRateLimit(ip, OTP_RATE_LIMIT))) {
-      return reply.status(429).send({ error: 'Too many requests. Please try again in 15 minutes.' });
-    }
-
-    // Generate OTP and store in Redis
-    const otp = generateOtp();
-    await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
-
-    if (process.env.NODE_ENV !== 'production') logger.debug({ email, otp }, '[EMAIL OTP] Generated OTP');
-
-    // Try sending 6-digit OTP via Resend/SendGrid email service
-    let sent = false;
     try {
-      const { sendOTP } = await import('../../services/email.service.js');
-      sent = await sendOTP(email, otp, 'login');
-    } catch (err: any) {
-      logger.warn({ email, error: err?.message }, '[EMAIL OTP] Email service threw error');
-    }
+      const body = await validateBody(request, reply, emailOtpSchema);
+      if (body === null) return;
+      const { email } = body;
 
-    if (sent) {
-      return {
-        message: 'OTP sent to your email',
-        ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
-      };
-    }
+      // Rate limit
+      const ip = (request.headers['x-forwarded-for'] as string) || request.ip || 'unknown';
+      if (!(await checkAuthRateLimit(ip, OTP_RATE_LIMIT))) {
+        return reply.status(429).send({ error: 'Too many requests. Please try again in 15 minutes.' });
+      }
 
-    // Fallback: Supabase sends magic link (not ideal, but better than nothing)
-    logger.warn({ email }, '[EMAIL OTP] Resend/SendGrid failed, falling back to Supabase');
-    if (supabaseAdmin) {
-      const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
-      if (!error) {
+      // Generate OTP
+      const otp = generateOtp();
+
+      // Store OTP in Redis (with fallback if Redis is down)
+      try {
+        await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
+      } catch (redisErr: any) {
+        logger.warn({ email, error: redisErr?.message }, '[EMAIL OTP] Redis store failed, continuing');
+      }
+
+      if (process.env.NODE_ENV !== 'production') logger.debug({ email, otp }, '[EMAIL OTP] Generated OTP');
+
+      // Try sending 6-digit OTP via Resend/SendGrid email service
+      let sent = false;
+      try {
+        sent = await sendEmailOTP(email, otp, 'login');
+      } catch (err: any) {
+        logger.warn({ email, error: err?.message }, '[EMAIL OTP] Email service threw error');
+      }
+
+      if (sent) {
         return {
-          message: 'Sign-in link sent to your email (check spam folder for 6-digit code)',
+          message: 'OTP sent to your email',
           ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
         };
       }
-    }
 
-    // Last resort: return OTP in response for dev
-    if (process.env.NODE_ENV !== 'production') {
-      return {
-        message: 'Email delivery failed. Use the OTP below to log in.',
-        otp,
-        smsFailed: true,
-      };
+      // Fallback: Supabase sends magic link (not ideal, but better than nothing)
+      logger.warn({ email }, '[EMAIL OTP] Resend/SendGrid failed, falling back to Supabase');
+      if (supabaseAdmin) {
+        const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
+        if (!error) {
+          return {
+            message: 'Sign-in link sent to your email (check spam folder for 6-digit code)',
+            ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
+          };
+        }
+      }
+
+      // Last resort: return OTP in response for dev
+      if (process.env.NODE_ENV !== 'production') {
+        return {
+          message: 'Email delivery failed. Use the OTP below to log in.',
+          otp,
+          smsFailed: true,
+        };
+      }
+      return reply.status(503).send({ error: 'Email delivery failed. Please try again later.' });
+    } catch (err: any) {
+      logger.error({ error: err?.message, stack: err?.stack }, '[EMAIL OTP] Unhandled error');
+      return reply.status(500).send({ error: 'Internal server error' });
     }
-    return reply.status(503).send({ error: 'Email delivery failed. Please try again later.' });
   });
 
   // ── Verify Email OTP (login or register) ──
