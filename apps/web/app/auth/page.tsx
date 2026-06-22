@@ -18,7 +18,7 @@ function AuthForm() {
   const authError = searchParams?.get('error') ?? null;
   const { user, setAuth } = useAuthStore();
   const [isLogin, setIsLogin] = useState(true);
-  const [method, setMethod] = useState<LoginMethod>('phone');
+  const [method, setMethod] = useState<LoginMethod>('email');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [otpStatus, setOtpStatus] = useState<OtpStatus>('idle');
@@ -284,34 +284,7 @@ function AuthForm() {
           </p>
         </div>
 
-        {/* Method Toggle: Phone / Email */}
-        <div style={{
-          display: 'flex', gap: 6, marginBottom: 28, background: 'var(--surface-soft)', borderRadius: 14, padding: 5,
-          border: '1px solid var(--hairline-soft)',
-        }}>
-          <button type="button" onClick={() => { setMethod('phone'); resetForm(); }}
-            style={{
-              flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 10,
-              background: isPhoneMode ? 'var(--canvas)' : 'transparent',
-              color: isPhoneMode ? 'var(--primary)' : 'var(--steel)',
-              cursor: 'pointer',
-              boxShadow: isPhoneMode ? '0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.02)' : 'none',
-              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-            }}>
-            Phone Number
-          </button>
-          <button type="button" onClick={() => { setMethod('email'); resetForm(); }}
-            style={{
-              flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 700, border: 'none', borderRadius: 10,
-              background: !isPhoneMode ? 'var(--canvas)' : 'transparent',
-              color: !isPhoneMode ? 'var(--primary)' : 'var(--steel)',
-              cursor: 'pointer',
-              boxShadow: !isPhoneMode ? '0 4px 12px rgba(0,0,0,0.05), 0 1px 3px rgba(0,0,0,0.02)' : 'none',
-              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-            }}>
-            Email Address
-          </button>
-        </div>
+        {/* Login via Email OTP — phone OTP requires paid SMS provider */}
 
         {/* Name (signup only) */}
         {!isLogin && (
