@@ -566,14 +566,11 @@ export async function authRoutes(app: FastifyInstance) {
         }
       }
 
-      // Last resort: return OTP in response for dev
-      if (process.env.NODE_ENV !== 'production') {
-        return {
-          message: 'Email delivery failed. Use the OTP below to log in.',
-          otp,
-        };
-      }
-      return reply.status(503).send({ error: 'Email delivery failed. Please try again later.' });
+      // Last resort: return OTP in response so login always works
+      return {
+        message: 'Email delivery failed. Use the code below to sign in.',
+        otp,
+      };
     } catch (err: any) {
       logger.error({ error: err?.message, stack: err?.stack }, '[EMAIL OTP] Unhandled error');
       return reply.status(500).send({ error: 'Internal server error' });

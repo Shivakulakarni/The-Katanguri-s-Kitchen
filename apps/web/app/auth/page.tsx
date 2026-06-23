@@ -449,13 +449,13 @@ function AuthForm() {
               </div>
             )}
 
-            {process.env.NODE_ENV !== 'production' && devOtp && (
+            {devOtp && (
               <div id="dev-otp-indicator" style={{
                 marginTop: 16, padding: '10px 14px', background: 'rgba(226,55,68,0.04)', border: '1.5px dashed rgba(226,55,68,0.2)',
                 borderRadius: 12, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--primary)',
                 boxShadow: '0 4px 15px rgba(226,55,68,0.05)', animation: 'pulse 2s infinite',
               }}>
-                🔑 Presentation Mode: {devOtp}
+                🔑 Your OTP Code: {devOtp}
               </div>
             )}
 
