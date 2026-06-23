@@ -19,7 +19,7 @@ interface ApiOptions extends RequestInit {
   retry?: boolean | RetryOptions;
 }
 
-const DEFAULT_TIMEOUT = 15_000;
+const DEFAULT_TIMEOUT = 45_000;
 
 function generateRequestId(): string {
   if (typeof window !== 'undefined' && typeof window.crypto?.randomUUID === 'function') {
