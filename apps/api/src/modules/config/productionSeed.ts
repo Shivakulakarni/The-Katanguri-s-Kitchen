@@ -64,7 +64,7 @@ export async function seedProductionData(): Promise<{ success: boolean; summary:
     { key: 'name', value: "The Katanguri's Kitchen" },
     { key: 'tagline', value: "Cooked with love, packed with care, and delivered fresh." },
     { key: 'subtitle', value: "Warangal's Favorite Cloud Kitchen" },
-    { key: 'phone', value: '+919876543210' },
+    { key: 'phone', value: '+919347968582' },
     { key: 'email', value: 'hello@thekatanguriskitchen.com' },
     { key: 'address', value: 'Hunter Road, Tiger Hills Colony, Hanamkonda, Warangal, Telangana 506001' },
     { key: 'city', value: 'Hanamkonda, Warangal' },

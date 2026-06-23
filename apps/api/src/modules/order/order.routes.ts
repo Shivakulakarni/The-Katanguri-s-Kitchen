@@ -277,6 +277,7 @@ export async function orderRoutes(app: FastifyInstance) {
     await redis.del(`cache:orders:list:${order.customerId}`);
 
     const eventMap: Record<string, string> = {
+      CONFIRMED: 'order.confirmed',
       PREPARING: 'order.preparation_started',
       READY: 'order.ready',
       OUT_FOR_DELIVERY: 'order.out_for_delivery',

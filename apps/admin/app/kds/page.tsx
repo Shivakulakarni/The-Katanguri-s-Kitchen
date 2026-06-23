@@ -5,6 +5,16 @@ import Image from 'next/image';
 import { getAuthHeaders } from '../../lib/auth-headers';
 import { toast } from '../../lib/toast-store';
 
+type OrderItem = {
+  id: number;
+  dishId: number;
+  dishName: string;
+  quantity: number;
+  unitPrice: string;
+  modifiers: any[];
+  isVeg: boolean | null;
+};
+
 type Order = {
   id: number;
   status: string;
@@ -12,6 +22,7 @@ type Order = {
   createdAt: string;
   notes: string | null;
   customerId: number | null;
+  items: OrderItem[];
 };
 
 const KDS_STATUSES = ['PENDING', 'CONFIRMED', 'PREPARING', 'READY'] as const;
@@ -214,9 +225,33 @@ export default function KDSPage() {
                       <span style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15 }}>#{o.id}</span>
                       <span style={{ fontSize: 11, color: '#64748b' }}>{timeAgo(o.createdAt)}</span>
                     </div>
-                    <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 12, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {o.notes || `Order #${o.id}`}
-                    </div>
+                    {/* Order Items */}
+                    {o.items && o.items.length > 0 && (
+                      <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {o.items.map((item, idx) => (
+                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                            <span style={{
+                              width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
+                              background: item.isVeg ? '#22c55e' : '#ef4444',
+                              border: `1px solid ${item.isVeg ? '#16a34a' : '#dc2626'}`,
+                            }} />
+                            <span style={{ color: '#e2e8f0', fontWeight: 600, flex: 1 }}>
+                              {item.quantity}x {item.dishName}
+                            </span>
+                            {item.modifiers && item.modifiers.length > 0 && (
+                              <span style={{ fontSize: 10, color: '#64748b' }}>
+                                +{item.modifiers.length}
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {o.notes && (
+                      <div style={{ fontSize: 11, color: '#f59e0b', marginBottom: 8, fontStyle: 'italic' }}>
+                        Note: {o.notes}
+                      </div>
+                    )}
                     <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8 }}>
                       Amount: <strong style={{ color: '#e2e8f0' }}>₹{parseFloat(o.totalAmount).toLocaleString()}</strong>
                     </div>

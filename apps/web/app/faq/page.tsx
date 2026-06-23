@@ -9,7 +9,7 @@ const faqs = [
   },
   {
     q: 'What are your delivery hours?',
-    a: 'We operate from 10:00 AM to 11:00 PM every day. Last order is accepted at 10:30 PM.',
+    a: 'We operate from 12:00 PM to 10:00 PM every day. Last order is accepted at 9:30 PM.',
   },
   {
     q: 'How long does delivery take?',

@@ -548,6 +548,12 @@ async function main() {
         case 'order.cancelled':
           if (orderId) await orderQueue.add('order-cancelled', { orderId, customerId: data.payload?.customerId, previousStatus: data.payload?.status });
           break;
+        case 'order.out_for_delivery':
+          if (orderId) {
+            const { communicationQueue } = await import('./utils/queue.js');
+            await communicationQueue.add('out-for-delivery', { orderId });
+          }
+          break;
       }
 
       if (data.event === 'order.out_for_delivery') {

@@ -61,7 +61,7 @@ export default function AboutPage() {
               <div>
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--slate)', marginBottom: 6 }}>Contact</h3>
                 <p style={{ fontSize: 14, color: 'var(--charcoal)', lineHeight: 1.6 }}>
-                  <a href="tel:+919876543210" style={{ color: 'var(--primary)', fontWeight: 600 }}>+91 98765 43210</a><br />
+                  <a href="tel:+919347968582" style={{ color: 'var(--primary)', fontWeight: 600 }}>+91 93479 68582</a><br />
                   <a href="mailto:hello@thekatanguriskitchen.com" style={{ color: 'var(--primary)', fontWeight: 600 }}>hello@thekatanguriskitchen.com</a>
                 </p>
               </div>

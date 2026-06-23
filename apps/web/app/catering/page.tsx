@@ -58,8 +58,8 @@ export default function CateringPage() {
           <div className="card" style={{ padding: 32, textAlign: 'center' }}>
             <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink-deep)', marginBottom: 12 }}>Ready to Book?</h2>
             <p style={{ color: 'var(--steel)', fontSize: 14, marginBottom: 20 }}>Minimum order: 20 guests. Book at least 48 hours in advance.</p>
-            <a href="tel:+919876543210" style={{ background: 'var(--primary)', color: '#fff', padding: '14px 32px', borderRadius: 'var(--rounded-lg)', fontWeight: 700, fontSize: 15, textDecoration: 'none', display: 'inline-block' }}>
-              Call Us: +91 98765 43210
+            <a href="tel:+919347968582" style={{ background: 'var(--primary)', color: '#fff', padding: '14px 32px', borderRadius: 'var(--rounded-lg)', fontWeight: 700, fontSize: 15, textDecoration: 'none', display: 'inline-block' }}>
+              Call Us: +91 93479 68582
             </a>
           </div>
         </motion.div>

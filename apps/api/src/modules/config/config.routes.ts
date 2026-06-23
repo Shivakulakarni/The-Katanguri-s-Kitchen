@@ -7,7 +7,7 @@ import { seedProductionData } from './productionSeed.js';
 const CONFIG_KEY = 'admin:config';
 const DEFAULT_CONFIG: Record<string, string> = {
   restaurantName: "The Katanguri's Kitchen",
-  restaurantPhone: '+919876543210',
+  restaurantPhone: '+919347968582',
   restaurantEmail: 'hello@thekatanguriskitchen.com',
   restaurantAddress: 'Hunter Road, Tiger Hills Colony',
   restaurantCity: 'Hanamkonda, Warangal',

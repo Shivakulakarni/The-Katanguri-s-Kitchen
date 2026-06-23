@@ -72,8 +72,8 @@ export default function ContactPage() {
           </div>
           <div className="card" style={{ padding: 20 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: 'var(--ink-deep)' }}>📞 Phone</h3>
-            <a href="tel:+919876543210" style={{ color: 'var(--primary)', fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 12 }}>
-              +91 98765 43210
+            <a href="tel:+919347968582" style={{ color: 'var(--primary)', fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 12 }}>
+              +91 93479 68582
             </a>
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: 'var(--ink-deep)' }}>✉️ Email</h3>
             <a href="mailto:hello@thekatanguriskitchen.com" style={{ color: 'var(--primary)', fontSize: 14, fontWeight: 600, display: 'block' }}>
@@ -119,7 +119,7 @@ export default function ContactPage() {
                 <label style={{ fontSize: 13, fontWeight: 700, color: 'var(--slate)', marginBottom: 6, display: 'block' }}>Phone (optional)</label>
                 <input
                   aria-label="Your phone (optional)"
-                  placeholder="+91 98765 43210"
+                  placeholder="+91 93479 68582"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   style={{ width: '100%' }}

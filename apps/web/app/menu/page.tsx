@@ -156,6 +156,16 @@ export default function MenuPage() {
         if (bi === -1) return -1;
         return ai - bi;
       }
+      if (sort === 'popularity') {
+        // Sort by: recommended first, then by prep time (faster = more popular), then lower price
+        const ai = recs.indexOf(a.id);
+        const bi = recs.indexOf(b.id);
+        const aRec = ai === -1 ? 0 : 1;
+        const bRec = bi === -1 ? 0 : 1;
+        if (aRec !== bRec) return bRec - aRec;
+        if (a.prepTimeMinutes !== b.prepTimeMinutes) return (a.prepTimeMinutes || 15) - (b.prepTimeMinutes || 15);
+        return a.price - b.price;
+      }
       return 0;
     }), [dishes, activeCat, debouncedSearch, sort, recs]);
 

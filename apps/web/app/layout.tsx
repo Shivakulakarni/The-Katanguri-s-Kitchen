@@ -16,6 +16,7 @@ import type { Metadata } from 'next';
 import MobileNav from './components/MobileNav';
 import { Suspense } from 'react';
 import CookieConsent from './components/CookieConsent';
+import CartBadge from './components/CartBadge';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -110,14 +111,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {[
                 { label: 'Menu',      href: '/menu' },
                 { label: 'Meal Planner', href: '/meal-planner' },
-                { label: 'Cart',      href: '/cart' },
+                { label: 'Cart',      href: '/cart', badge: true },
                 { label: 'My Orders', href: '/orders' },
                 { label: 'Track',     href: '/track' },
                 { label: 'Contact',   href: '/contact' },
               ].map(tab => (
                 <Link key={tab.label} href={tab.href}
-                  className="filter-chip" style={{ fontSize: 14, padding: '8px 16px' }}>
+                  className="filter-chip" style={{ fontSize: 14, padding: '8px 16px', display: 'inline-flex', alignItems: 'center' }}>
                   {tab.label}
+                  {tab.badge && <CartBadge />}
                 </Link>
               ))}
             </div>
@@ -171,7 +173,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               ]},
               { title: 'Contact', links: [
                 { label: 'hello@thekatanguriskitchen.com', href: 'mailto:hello@thekatanguriskitchen.com' },
-                { label: '+91 98765 43210', href: 'tel:+919876543210' },
+                { label: '+91 93479 68582', href: 'tel:+919347968582' },
                 { label: 'Hanamkonda, Warangal', href: '#' },
               ]},
             ].map(col => (
@@ -198,6 +200,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             textAlign: 'center', fontSize: 12, color: 'var(--stone)'
           }}>
             © 2026 The Katanguri's Kitchen. All rights reserved.
+            <br />
+            <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone)', textDecoration: 'underline' }}>Photos provided by Pexels</a>
           </div>
         </footer>
 
@@ -223,14 +227,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               })}
             </div>
             <div>
-              <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Support</h4>
-              <Link href="/contact" style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>Contact Us</Link>
-              <Link href="/privacy" style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>Privacy Policy</Link>
-              <Link href="/terms" style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>Terms</Link>
+              <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contact</h4>
+              <a href="tel:+919347968582" style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>+91 93479 68582</a>
+              <a href="mailto:hello@thekatanguriskitchen.com" style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>hello@thekatanguriskitchen.com</a>
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>Hanamkonda, Warangal</span>
+              <span style={{ display: 'block', fontSize: 13, color: 'var(--steel)', marginBottom: 6 }}>12 PM - 10 PM, All Days</span>
             </div>
           </div>
           <div style={{ borderTop: '1px solid var(--hairline-soft)', paddingTop: 16, textAlign: 'center', fontSize: 12, color: 'var(--stone)' }}>
             © 2026 The Katanguri&apos;s Kitchen. All rights reserved.
+            <br />
+            <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--stone)', textDecoration: 'underline' }}>Photos provided by Pexels</a>
           </div>
         </footer>
         </AuthProvider>

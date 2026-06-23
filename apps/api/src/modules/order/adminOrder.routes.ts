@@ -1,7 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { db } from '../../db/connection.js';
 import { orders, orderItems } from '../../db/schemas/order.js';
-import { eq, desc, sql, count, gte } from 'drizzle-orm';
+import { dishes } from '../../db/schemas/menu.js';
+import { eq, desc, sql, count, inArray, gte } from 'drizzle-orm';
 import { authenticate, requireAdmin } from '../../middleware/auth.js';
 
 export async function adminOrderRoutes(app: FastifyInstance) {
@@ -32,7 +33,48 @@ export async function adminOrderRoutes(app: FastifyInstance) {
       .limit(queryLimit)
       .offset(queryOffset);
 
-    return { data, total: Number(total), hasMore: queryOffset + queryLimit < Number(total) };
+    // Fetch items for all returned orders
+    const orderIds = data.map(o => o.id);
+    let itemsWithNames: any[] = [];
+    if (orderIds.length > 0) {
+      itemsWithNames = await db
+        .select({
+          orderId: orderItems.orderId,
+          id: orderItems.id,
+          dishId: orderItems.dishId,
+          quantity: orderItems.quantity,
+          unitPrice: orderItems.unitPrice,
+          modifiers: orderItems.modifiers,
+          dishName: dishes.name,
+          isVeg: dishes.isVeg,
+        })
+        .from(orderItems)
+        .leftJoin(dishes, eq(orderItems.dishId, dishes.id))
+        .where(inArray(orderItems.orderId, orderIds));
+    }
+
+    // Group items by orderId and attach to each order
+    const itemsByOrder = new Map<number, any[]>();
+    for (const item of itemsWithNames) {
+      const list = itemsByOrder.get(item.orderId) || [];
+      list.push({
+        id: item.id,
+        dishId: item.dishId,
+        dishName: item.dishName || `Dish #${item.dishId}`,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        modifiers: item.modifiers,
+        isVeg: item.isVeg,
+      });
+      itemsByOrder.set(item.orderId, list);
+    }
+
+    const dataWithItems = data.map(o => ({
+      ...o,
+      items: itemsByOrder.get(o.id) || [],
+    }));
+
+    return { data: dataWithItems, total: Number(total), hasMore: queryOffset + queryLimit < Number(total) };
   });
 
   app.get('/api/v1/admin/orders/stats', async (request) => {

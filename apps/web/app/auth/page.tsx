@@ -10,6 +10,7 @@ import { trackEvent } from '../lib/analytics';
 
 type LoginMethod = 'phone' | 'email';
 type OtpStatus = 'idle' | 'sent' | 'expired' | 'verified';
+type AuthMode = 'otp' | 'password';
 
 function AuthForm() {
   const router = useRouter();
@@ -18,9 +19,11 @@ function AuthForm() {
   const authError = searchParams?.get('error') ?? null;
   const { user, setAuth } = useAuthStore();
   const [isLogin, setIsLogin] = useState(true);
-  const [method, setMethod] = useState<LoginMethod>('email');
+  const [method] = useState<LoginMethod>('email');
+  const [authMode, setAuthMode] = useState<AuthMode>('otp');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [otpStatus, setOtpStatus] = useState<OtpStatus>('idle');
   const [otp, setOtp] = useState('');
   const [name, setName] = useState('');
@@ -217,6 +220,28 @@ function AuthForm() {
     setTimeout(() => handleSendOtp(), 100);
   };
 
+  const handlePasswordLogin = async () => {
+    if (!email || !email.includes('@') || !password) return;
+    setLoading(true);
+    setError('');
+    try {
+      const endpoint = isLogin ? '/api/v1/auth/login' : '/api/v1/auth/register';
+      const payload: any = { email, password };
+      if (!isLogin && name) payload.name = name;
+      const data = await api.post(endpoint, payload);
+      if (data.error) { setError(data.error); setLoading(false); return; }
+      if (data.accessToken) {
+        trackEvent('login', { method: 'email-password', isLogin });
+        setAuth(data.user, data.accessToken, data.refreshToken);
+        setSuccess(isLogin ? 'Signed in!' : 'Account created!');
+        setTimeout(() => router.push('/'), 500);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Login failed');
+    }
+    setLoading(false);
+  };
+
   const isPhoneMode = method === 'phone';
   const canSend = isPhoneMode ? phone.length === 10 : email.includes('@');
   const otpExpired = otpStatus === 'expired';
@@ -311,7 +336,7 @@ function AuthForm() {
               }}>
                 +91
               </div>
-              <input id="phone" name="phone" type="tel" placeholder="98765 43210" value={phone}
+              <input id="phone" name="phone" type="tel" placeholder="93479 68582" value={phone}
                 onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                 disabled={otpStatus === 'sent'}
                 style={{
@@ -339,6 +364,44 @@ function AuthForm() {
               }}
               onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(226,55,68,0.08)'; }}
               onBlur={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.boxShadow = 'none'; }} />
+          </div>
+        )}
+
+        {/* Password Input */}
+        {!isPhoneMode && authMode === 'password' && (
+          <div style={{ marginBottom: 24 }}>
+            <label htmlFor="password" style={{ fontSize: 12, fontWeight: 700, color: 'var(--charcoal)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 6, display: 'block' }}>Password</label>
+            <input id="password" name="password" placeholder={isLogin ? 'Your password' : 'Create a password'} type="password" value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && email.includes('@') && password.length >= 6) handlePasswordLogin(); }}
+              style={{
+                width: '100%', height: 48, borderRadius: 12, border: '1.5px solid var(--hairline)',
+                padding: '0 16px', fontSize: 15, fontWeight: 600, transition: 'all 0.2s ease',
+              }}
+              onFocus={e => { e.currentTarget.style.borderColor = 'var(--primary)'; e.currentTarget.style.boxShadow = '0 0 0 4px rgba(226,55,68,0.08)'; }}
+              onBlur={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; e.currentTarget.style.boxShadow = 'none'; }} />
+          </div>
+        )}
+
+        {/* OTP/Password toggle */}
+        {!isPhoneMode && otpStatus === 'idle' && (
+          <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center', gap: 4, padding: 4, background: 'var(--surface-soft)', borderRadius: 10 }}>
+            <button type="button" onClick={() => { setAuthMode('otp'); setError(''); setPassword(''); }}
+              style={{
+                flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                background: authMode === 'otp' ? 'var(--canvas)' : 'transparent',
+                color: authMode === 'otp' ? 'var(--primary)' : 'var(--steel)',
+                boxShadow: authMode === 'otp' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.2s ease',
+              }}>Email OTP</button>
+            <button type="button" onClick={() => { setAuthMode('password'); setError(''); setOtpStatus('idle'); setOtp(''); setDevOtp(''); }}
+              style={{
+                flex: 1, padding: '8px 0', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                background: authMode === 'password' ? 'var(--canvas)' : 'transparent',
+                color: authMode === 'password' ? 'var(--primary)' : 'var(--steel)',
+                boxShadow: authMode === 'password' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.2s ease',
+              }}>Password</button>
           </div>
         )}
 
@@ -386,7 +449,7 @@ function AuthForm() {
               </div>
             )}
 
-            {devOtp && (
+            {process.env.NODE_ENV !== 'production' && devOtp && (
               <div id="dev-otp-indicator" style={{
                 marginTop: 16, padding: '10px 14px', background: 'rgba(226,55,68,0.04)', border: '1.5px dashed rgba(226,55,68,0.2)',
                 borderRadius: 12, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--primary)',
@@ -441,19 +504,25 @@ function AuthForm() {
           boxShadow: '0 6px 20px rgba(226,55,68,0.25)',
           borderRadius: 12,
           transition: 'all 0.2s ease',
-          cursor: loading || cooldown > 0 || (otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired ? 'not-allowed' : 'pointer',
-          opacity: loading || cooldown > 0 || (otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired ? 0.6 : 1,
+          cursor: loading || cooldown > 0 || (authMode === 'otp' && ((otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired)) || (authMode === 'password' && (!email.includes('@') || password.length < 6)) ? 'not-allowed' : 'pointer',
+          opacity: loading || cooldown > 0 || (authMode === 'otp' && ((otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired)) || (authMode === 'password' && (!email.includes('@') || password.length < 6)) ? 0.6 : 1,
         }}
-        onClick={() => otpStatus === 'idle' ? handleSendOtp() : handleVerifyOtp()}
-        disabled={loading || cooldown > 0 || (otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired}
+        onClick={() => {
+          if (authMode === 'password') {
+            handlePasswordLogin();
+          } else {
+            otpStatus === 'idle' ? handleSendOtp() : handleVerifyOtp();
+          }
+        }}
+        disabled={loading || cooldown > 0 || (authMode === 'otp' && ((otpStatus === 'idle' && !canSend) || (otpStatus === 'sent' && otp.length !== 6) || otpExpired)) || (authMode === 'password' && (!email.includes('@') || password.length < 6))}
         onMouseEnter={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.boxShadow = '0 8px 25px rgba(226,55,68,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
         onMouseLeave={e => { if (!e.currentTarget.disabled) { e.currentTarget.style.boxShadow = '0 6px 20px rgba(226,55,68,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; } }}>
           {loading ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div className="animate-spin" style={{ width: 16, height: 16, border: '2px solid var(--on-primary)', borderTopColor: 'transparent', borderRadius: '50%' }} />
-              {otpStatus === 'idle' ? 'Sending Code...' : 'Verifying Code...'}
+              {authMode === 'password' ? 'Signing In...' : otpStatus === 'idle' ? 'Sending Code...' : 'Verifying Code...'}
             </div>
-          ) : otpExpired ? 'Request New OTP' : otpStatus === 'idle' ? 'Send OTP' : isLogin ? 'Verify & Sign In' : 'Verify & Sign Up'}
+          ) : otpExpired ? 'Request New OTP' : authMode === 'password' ? (isLogin ? 'Sign In with Password' : 'Create Account') : otpStatus === 'idle' ? 'Send OTP' : isLogin ? 'Verify & Sign In' : 'Verify & Sign Up'}
         </button>
 
         {/* Cooldown indicator */}

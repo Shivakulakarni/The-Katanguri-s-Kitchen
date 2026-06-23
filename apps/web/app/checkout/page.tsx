@@ -50,6 +50,13 @@ export default function CheckoutPage() {
   const [tip, setTip] = useState(0);
   const submittingRef = useRef(false);
 
+  // Redirect to cart if empty
+  useEffect(() => {
+    if (items.length === 0) {
+      router.replace('/cart');
+    }
+  }, [items.length, router]);
+
   const subtotal = getTotal();
   const deliveryFee = subtotal >= 500 ? 0 : 40;
   const total = subtotal + deliveryFee + tip;

@@ -59,7 +59,7 @@ function getConfig(): NotificationConfig {
       provider: process.env.SMS_PROVIDER || 'twilio',
       apiKey: process.env.SMS_API_KEY || '',
       apiSecret: process.env.SMS_API_SECRET || '',
-      fromNumber: process.env.SMS_FROM || '+919876543210',
+      fromNumber: process.env.SMS_FROM || '+919347968582',
       toNumbers: (process.env.SMS_TO_NUMBERS || '').split(',').filter(Boolean),
     },
   };
