@@ -20,7 +20,7 @@ function AuthForm() {
   const { user, setAuth } = useAuthStore();
   const [isLogin, setIsLogin] = useState(true);
   const [method] = useState<LoginMethod>('email');
-  const [authMode, setAuthMode] = useState<AuthMode>('otp');
+  const [authMode, setAuthMode] = useState<AuthMode>('password');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
