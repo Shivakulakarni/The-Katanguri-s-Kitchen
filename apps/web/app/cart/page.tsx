@@ -9,9 +9,21 @@ function formatPrice(price: number) {
 }
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, getTotal, getItemTotal } = useCartStore();
+  const { items, updateQuantity, removeItem, getTotal, getItemTotal, validateCart } = useCartStore();
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => { setHydrated(true); }, []);
+
+  // Validate cart on load
+  useEffect(() => {
+    if (items.length === 0) return;
+    validateCart().then(({ removed }) => {
+      if (removed > 0) {
+        import('../lib/toast-store').then(({ toast }) => {
+          toast.warning('Some items removed', `${removed} item(s) no longer available and were removed from your cart`);
+        });
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!hydrated) return <div className="container" style={{ paddingTop: 32, textAlign: 'center', color: '#767676' }}>Loading cart...</div>;
   const subtotal = getTotal();
   const deliveryFee = subtotal >= 500 ? 0 : 40;

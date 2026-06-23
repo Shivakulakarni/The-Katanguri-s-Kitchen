@@ -51,10 +51,16 @@ export async function orderRoutes(app: FastifyInstance) {
       const dishMap = new Map(menuDishes.map(d => [d.id, d]));
 
       const resolvedItems: { dishId: number; quantity: number; unitPrice: number; modifiers: any[] }[] = [];
+      const invalidItems: { dishId: number; reason: string }[] = [];
       for (const item of items) {
         const dish = dishMap.get(item.dishId);
-        if (!dish || !dish.isAvailable) {
-          return reply.status(400).send({ error: `Dish not found or unavailable: ${item.dishId}` });
+        if (!dish) {
+          invalidItems.push({ dishId: item.dishId, reason: 'not_found' });
+          continue;
+        }
+        if (!dish.isAvailable) {
+          invalidItems.push({ dishId: item.dishId, reason: 'unavailable' });
+          continue;
         }
         resolvedItems.push({
           dishId: dish.id,
@@ -62,6 +68,14 @@ export async function orderRoutes(app: FastifyInstance) {
           unitPrice: parseFloat(dish.price),
           modifiers: item.modifiers || [],
         });
+      }
+      if (invalidItems.length > 0) {
+        const notFound = invalidItems.filter(i => i.reason === 'not_found').map(i => i.dishId);
+        const unavailable = invalidItems.filter(i => i.reason === 'unavailable').map(i => i.dishId);
+        let msg = 'Some items are no longer available. Please refresh your cart.';
+        if (notFound.length > 0) msg += ` (removed: ${notFound.join(', ')})`;
+        if (unavailable.length > 0) msg += ` (unavailable: ${unavailable.join(', ')})`;
+        return reply.status(400).send({ error: msg, invalidItems });
       }
 
       const totalAmount = resolvedItems.reduce((sum: number, item: any) => sum + item.unitPrice * item.quantity, 0);

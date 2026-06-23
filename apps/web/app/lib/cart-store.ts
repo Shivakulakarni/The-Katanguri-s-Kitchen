@@ -20,6 +20,7 @@ interface CartState {
   getItemTotal: (item: CartItem) => number;
   getTotal: () => number;
   getCount: () => number;
+  validateCart: () => Promise<{ removed: number; kept: number }>;
 }
 
 export const useCartStore = create<CartState>()(
@@ -82,6 +83,27 @@ export const useCartStore = create<CartState>()(
       }, 0),
 
       getCount: () => get().items.reduce((sum, i) => sum + i.quantity, 0),
+
+      validateCart: async () => {
+        const items = get().items;
+        if (items.length === 0) return { removed: 0, kept: 0 };
+        try {
+          const res = await fetch('/api/v1/menu');
+          if (!res.ok) return { removed: 0, kept: items.length };
+          const categories = await res.json();
+          const validIds = new Set(
+            categories.flatMap((c: any) => c.dishes?.map((d: any) => d.id) || [])
+          );
+          const stale = items.filter(i => !validIds.has(i.id));
+          if (stale.length === 0) return { removed: 0, kept: items.length };
+          set(state => ({
+            items: state.items.filter(i => validIds.has(i.id))
+          }));
+          return { removed: stale.length, kept: items.length - stale.length };
+        } catch {
+          return { removed: 0, kept: items.length };
+        }
+      },
     }),
     {
       name: 'kitchen-cart',

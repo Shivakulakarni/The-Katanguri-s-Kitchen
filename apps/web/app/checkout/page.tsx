@@ -34,7 +34,7 @@ function validateAddress(addr: { line: string; city: string; pincode: string }):
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items, getTotal, clearCart, getItemTotal } = useCartStore();
+  const { items, getTotal, clearCart, getItemTotal, validateCart } = useCartStore();
   const { token, user } = useAuthStore();
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState({ line: '', city: '', pincode: '' });
@@ -56,6 +56,19 @@ export default function CheckoutPage() {
       router.replace('/cart');
     }
   }, [items.length, router]);
+
+  // Validate cart items still exist in menu
+  useEffect(() => {
+    if (items.length === 0) return;
+    validateCart().then(({ removed }) => {
+      if (removed > 0) {
+        toast.warning(
+          'Some items removed',
+          `${removed} item(s) no longer available and were removed from your cart`
+        );
+      }
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const subtotal = getTotal();
   const deliveryFee = subtotal >= 500 ? 0 : 40;
