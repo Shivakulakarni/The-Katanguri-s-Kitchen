@@ -515,14 +515,27 @@ export async function authRoutes(app: FastifyInstance) {
       // Generate OTP
       const otp = generateOtp();
 
-      // Store OTP in Redis (with fallback if Redis is down)
+      // Store OTP in Redis
       try {
         await setOtp(`email:${email}`, { otp, expiresAt: Date.now() + OTP_EXPIRY_SECONDS * 1000, phone: email });
       } catch (redisErr: any) {
         logger.warn({ email, error: redisErr?.message }, '[EMAIL OTP] Redis store failed, continuing');
       }
 
-      // Attempt 1: Send 6-digit OTP via Resend API
+      // Attempt 1: Supabase email OTP (free, built-in, no API key needed)
+      if (supabaseAdmin) {
+        try {
+          const { error } = await supabaseAdmin.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+          if (!error) {
+            return { message: 'OTP sent to your email' };
+          }
+          logger.warn({ email, error: error.message }, '[EMAIL OTP] Supabase email OTP failed');
+        } catch (err: any) {
+          logger.warn({ email, error: err?.message }, '[EMAIL OTP] Supabase email OTP error');
+        }
+      }
+
+      // Attempt 2: Resend API fallback
       const resendKey = process.env.RESEND_API_KEY || '';
       if (resendKey) {
         try {
@@ -537,17 +550,13 @@ export async function authRoutes(app: FastifyInstance) {
               from,
               to: [email],
               subject: `Your login Code — The Katanguri's Kitchen`,
-              html: `<p>Your verification code is: <b>${otp}</b></p><p>This code expires in 10 minutes.</p>`,
+              html: `<p>Your verification code is: <b>${otp}</b></p><p>This code expires in 5 minutes.</p>`,
             }),
           });
 
           if (res.ok) {
-            return {
-              message: 'OTP sent to your email',
-              ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
-            };
+            return { message: 'OTP sent to your email' };
           }
-
           const respBody = await res.json();
           logger.warn({ email, status: res.status, body: respBody }, '[EMAIL OTP] Resend API error');
         } catch (err: any) {
@@ -555,22 +564,8 @@ export async function authRoutes(app: FastifyInstance) {
         }
       }
 
-      // Attempt 2: Supabase magic link fallback
-      if (supabaseAdmin) {
-        const { error } = await supabaseAdmin.auth.signInWithOtp({ email });
-        if (!error) {
-          return {
-            message: 'Sign-in link sent to your email (check spam folder for 6-digit code)',
-            ...(process.env.NODE_ENV !== 'production' ? { otp } : {}),
-          };
-        }
-      }
-
-      // Last resort: return OTP in response so login always works
-      return {
-        message: 'Email delivery failed. Use the code below to sign in.',
-        otp,
-      };
+      // Last resort: return OTP so login always works
+      return { message: 'Email delivery unavailable. Use the code below to sign in.', otp };
     } catch (err: any) {
       logger.error({ error: err?.message, stack: err?.stack }, '[EMAIL OTP] Unhandled error');
       return reply.status(500).send({ error: 'Internal server error' });

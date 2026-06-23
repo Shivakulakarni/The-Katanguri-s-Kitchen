@@ -140,7 +140,7 @@ function AuthForm() {
       try {
         const data = await api.post('/api/v1/auth/email-otp', { email });
         if (data.error) { setError(data.error); setLoading(false); return; }
-        if (data.otp) {
+        if (data.otp && data.message?.includes('delivery')) {
           setDevOtp(data.otp);
         }
         setSuccess(`OTP sent to ${email}`);
