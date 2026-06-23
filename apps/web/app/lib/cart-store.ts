@@ -88,7 +88,10 @@ export const useCartStore = create<CartState>()(
         const items = get().items;
         if (items.length === 0) return { removed: 0, kept: 0 };
         try {
-          const res = await fetch('/api/v1/menu');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30_000);
+          const res = await fetch('/api/v1/menu', { signal: controller.signal });
+          clearTimeout(timeoutId);
           if (!res.ok) return { removed: 0, kept: items.length };
           const categories = await res.json();
           const validIds = new Set(

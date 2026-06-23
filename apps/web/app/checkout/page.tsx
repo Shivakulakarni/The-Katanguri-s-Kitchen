@@ -35,7 +35,7 @@ function validateAddress(addr: { line: string; city: string; pincode: string }):
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, getTotal, clearCart, getItemTotal, validateCart } = useCartStore();
-  const { token, user } = useAuthStore();
+  const { token, user, ensureValidToken } = useAuthStore();
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState({ line: '', city: '', pincode: '' });
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
@@ -80,8 +80,11 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    api.get('/api/v1/customer/addresses', token || undefined)
-      .then(res => {
+    (async () => {
+      try {
+        const validToken = await ensureValidToken();
+        if (!validToken || cancelled) return;
+        const res = await api.get('/api/v1/customer/addresses', validToken);
         if (cancelled) return;
         const list = Array.isArray(res) ? res : (res?.addresses || []);
         if (list.length > 0) {
@@ -92,8 +95,8 @@ export default function CheckoutPage() {
             setAddress({ line: def.addressLine1, city: def.city, pincode: def.pincode });
           }
         }
-      })
-      .catch(err => { if (cancelled) return; console.error('Failed to load addresses:', err); setError('Could not load saved addresses'); });
+      } catch (err) { if (!cancelled) console.error('Failed to load addresses:', err); }
+    })();
     return () => { cancelled = true; };
   }, [token]);
 
@@ -118,6 +121,17 @@ export default function CheckoutPage() {
     setLoading(true);
     setError('');
 
+    // Ensure we have a valid token before making API calls
+    const validToken = await ensureValidToken();
+    if (!validToken) {
+      setError('Session expired — please sign in again');
+      toast.error('Session expired', 'Your session has expired. Please sign in again.');
+      router.push('/auth?redirect=/checkout');
+      setLoading(false);
+      submittingRef.current = false;
+      return;
+    }
+
     try {
       let addressId = selectedAddressId;
 
@@ -130,7 +144,7 @@ export default function CheckoutPage() {
             state: 'Telangana',
             pincode: address.pincode,
             label: 'Home',
-          }, token ?? undefined);
+          }, validToken ?? undefined);
           if (res) {
             const newAddr = res.address || res;
             addressId = newAddr.id;
@@ -158,7 +172,7 @@ export default function CheckoutPage() {
               items: orderItems,
               deliveryAddressId: addressId || null,
               notes: orderNotes,
-            }, token || undefined);
+            }, validToken || undefined);
 
             if (data.error) { setError(data.error); toast.error('Order failed', data.error); return; }
 
@@ -168,7 +182,7 @@ export default function CheckoutPage() {
 
           const paymentData = await api.post('/api/v1/payments/create-intent', {
             orderId, amount: total, currency: 'INR',
-          }, token ?? undefined);
+          }, validToken ?? undefined);
 
           if (paymentData.clientSecret) {
             setClientSecret(paymentData.clientSecret);
@@ -210,7 +224,7 @@ export default function CheckoutPage() {
         items: orderItems,
         deliveryAddressId: addressId || null,
         notes: codNotes,
-      }, token || undefined);
+      }, validToken || undefined);
 
       if (data.error) { setError(data.error); toast.error('Order failed', data.error); return; }
 
@@ -223,6 +237,11 @@ export default function CheckoutPage() {
       router.push(`/track?id=${orderId}`);
     } catch (err: unknown) {
       const appError = ensureAppError(err);
+      if (appError.statusCode === 401) {
+        toast.error('Session expired', 'Please sign in again');
+        router.push('/auth?redirect=/checkout');
+        return;
+      }
       const msg = appError.message || 'Failed to place order';
       setError(msg);
       toast.error('Order failed', appError.category === 'network' ? 'Check your connection and try again' : msg);
