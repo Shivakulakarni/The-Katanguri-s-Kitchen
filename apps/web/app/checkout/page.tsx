@@ -35,7 +35,7 @@ function validateAddress(addr: { line: string; city: string; pincode: string }):
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, getTotal, clearCart, getItemTotal, validateCart } = useCartStore();
-  const { token, user, ensureValidToken } = useAuthStore();
+  const { user, isLoading: authLoading, ensureValidToken } = useAuthStore();
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState({ line: '', city: '', pincode: '' });
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
@@ -43,12 +43,20 @@ export default function CheckoutPage() {
   const [payment, setPayment] = useState('cod');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [createdOrderId, setCreatedOrderId] = useState<number | null>(null);
   const [isPaymentStep, setIsPaymentStep] = useState(false);
   const [tip, setTip] = useState(0);
   const submittingRef = useRef(false);
+
+  // Wait for auth to resolve before doing anything
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.replace('/auth?redirect=/checkout');
+    }
+  }, [authLoading, user, router]);
 
   // Redirect to cart if empty
   useEffect(() => {
@@ -98,7 +106,7 @@ export default function CheckoutPage() {
       } catch (err) { if (!cancelled) console.error('Failed to load addresses:', err); }
     })();
     return () => { cancelled = true; };
-  }, [token]);
+  }, [user]);
 
   /** Validate step 1 fields and show inline errors */
   const validateStep1 = useCallback((): boolean => {
@@ -264,6 +272,25 @@ export default function CheckoutPage() {
     setClientSecret(null);
     // Don't clear createdOrderId — retry should reuse existing order
   };
+
+  // Show loading while auth resolves or redirect if not signed in
+  if (authLoading) {
+    return (
+      <div className="container" style={{ paddingTop: 32, textAlign: 'center', color: '#767676' }}>
+        Loading checkout...
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="container" style={{ paddingTop: 32, textAlign: 'center' }}>
+        <h2 style={{ fontSize: 24, fontWeight: 700, marginBottom: 16, color: 'var(--ink-deep)' }}>Sign in required</h2>
+        <p style={{ color: 'var(--steel)', marginBottom: 24 }}>Please sign in to place an order</p>
+        <Link href="/auth?redirect=/checkout" className="btn btn-primary">Sign In</Link>
+      </div>
+    );
+  }
 
   return (
     <div className="container" style={{ paddingTop: 32, maxWidth: 720, margin: '0 auto' }}>
